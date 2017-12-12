@@ -134,15 +134,15 @@ public class BuyerAgent extends Agent {
 
                 protected ACLMessage handleAcceptProposal(ACLMessage msg, ACLMessage propose, ACLMessage accept) {
                     if (msg != null) {
-                        String jobTitle = null;
-                        int payment = 0;
+                        String agentName = null;
+                        BigDecimal payment = BigDecimal.ZERO;
                         try {
-                            jobTitle = accept.getContent().substring(0, accept.getContent().indexOf("|"));
-                            payment = Integer.parseInt(accept.getContent().substring(accept.getContent().lastIndexOf("|") + 1));
+                            agentName = accept.getContent().substring(0, accept.getContent().indexOf("|"));
+                            payment = new BigDecimal (accept.getContent().substring(accept.getContent().lastIndexOf("|") + 1));
                         } catch (Exception e) {
                         }
 
-                        System.out.println(getAID().getName() + " has accepted the job: \"" + jobTitle + "\" from "
+                        System.out.println(getAID().getName() + " has accepted the offer from "
                                 + accept.getSender().getName() + ", and will receive $" + payment + " for completing it.");
                         ACLMessage inform = accept.createReply();
                         inform.setPerformative(ACLMessage.INFORM);

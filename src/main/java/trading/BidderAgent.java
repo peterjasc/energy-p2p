@@ -143,7 +143,7 @@ public class BidderAgent extends Agent {
 					newIteration(cfps);
 				} else if (agentsLeft == 1) {
 					reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
-					if (bestProposal.compareTo(paymentList.get(paymentList.size() - 1)) > 0) {
+					if (bestProposal.compareTo(paymentList.get(paymentList.size() - 1)) >= 0) {
 						reply.setContent(getLocalName() + "|" + bestProposal);
 						reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
 					}
