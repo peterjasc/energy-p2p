@@ -1,8 +1,9 @@
 pragma solidity ^0.4.8;
 contract SmartContract {
     Contract[] public contracts; //array of open contracts
+    event BidAccepted(uint indexed age, uint indexed height);
 
-    //Bid[] public bids;
+//Bid[] public bids;
     mapping(uint => Bid) bidMap;
     uint bidTableContractId = 0;
     uint count; //number of contracts
@@ -11,13 +12,11 @@ contract SmartContract {
         uint month;
         uint year;
     }*/
-    struct Contract { //create Contract datatype
+    struct Contract {
         uint contractId;
-        bytes32 asset;
         uint quantity;
         uint targetPrice;
         uint targetTime;
-        bytes32 extra;
     }
     struct Bid {
         uint contractId;
@@ -79,11 +78,11 @@ contract SmartContract {
     }
 
     function getBid(uint _cid) constant returns (uint, bytes32, uint, uint){
-        var bid = bidMap[_cid];
-        uint contractId = bid.contractId;
-        bytes32 supplier = bid.supplier;
-        uint price = bid.price;
-        uint timeToComplete = bid.bidTime;
+        var bidMade = bidMap[_cid];
+        uint contractId = bidMade.contractId;
+        bytes32 supplier = bidMade.supplier;
+        uint price = bidMade.price;
+        uint timeToComplete = bidMade.bidTime;
         return (contractId, supplier, price, timeToComplete);
     }
 }
