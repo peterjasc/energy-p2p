@@ -8,7 +8,15 @@ public class Trader implements Serializable{
 
     private transient AgentController agentController;
     private transient Agent tradeAgent;
+    private String nickname;
 
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
+    }
 
     public void start() throws StaleProxyException{
         agentController.start();

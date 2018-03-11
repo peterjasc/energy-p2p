@@ -6,10 +6,12 @@ import trading.BookSellerAgent;
 import trading.BuyerAgent;
 
 public class TradeAgentFactory {
-    public static Trader createTradeAgent(Agent agent, ContainerController containerController) throws StaleProxyException {
+    public static Trader createTradeAgent(String nickname, Agent agent, ContainerController containerController) throws StaleProxyException {
         Trader trader = new Trader();
+        trader.setNickname(nickname);
+
         Class<?> classForAgentToBeCreated = null;
-        AgentController createdAgent;
+        AgentController createdAgentController;
 
         if (agent instanceof BuyerAgent) {
             classForAgentToBeCreated = BuyerAgent.class;
@@ -19,8 +21,16 @@ public class TradeAgentFactory {
 
         trader.setTradeAgent(agent);
 
-        createdAgent = containerController.createNewAgent(agent.getName(), classForAgentToBeCreated.getName(), agent.toArray());
-        trader.setAgentController(createdAgent);
+        Object[] arguments;
+        if (agent.getArguments() == null) {
+            arguments = new Object[0];
+        } else {
+            arguments = agent.getArguments();
+        }
+
+        createdAgentController = containerController
+                .createNewAgent(nickname, classForAgentToBeCreated.getName(),arguments);
+        trader.setAgentController(createdAgentController);
 
         return trader;
     }

@@ -26,24 +26,28 @@ public class Simulation implements Serializable {
         simulation.container = jadeRuntime.createMainContainer(profile);
         simulation.agents = createAgents(simulation.container);
 
+        simulation.startAll();
+
     }
 
     private static ArrayList<Trader> createAgents(ContainerController containerController) throws StaleProxyException {
-        ArrayList<Trader> agents = null;
+        ArrayList<Trader> agents = new ArrayList<>();
 
-        System.out.println("Starting up an agent..");
         BuyerAgent buyerAgent = new BuyerAgent();
-        TradeAgentFactory.createTradeAgent(buyerAgent, containerController);
+//        String[] arguments = new String[3];
+//        buyerAgent.setArguments(arguments);
 
-        System.out.println("Starting up an agent..");
+        agents.add(TradeAgentFactory.createTradeAgent("buyer1",buyerAgent, containerController));
+
         BookSellerAgent bookSellerAgent = new BookSellerAgent();
-        TradeAgentFactory.createTradeAgent(bookSellerAgent, containerController);
+        agents.add(TradeAgentFactory.createTradeAgent("seller1",bookSellerAgent, containerController));
 
         return agents;
     }
 
     public void startAll() throws StaleProxyException {
         for (Trader trader : agents) {
+            System.out.println("Starting up " + trader.getNickname());
             trader.start();
         }
     }
