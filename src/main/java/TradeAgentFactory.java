@@ -2,6 +2,7 @@ import jade.core.Agent;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
+import trading.BidderAgent;
 import trading.BookSellerAgent;
 import trading.BuyerAgent;
 
@@ -15,15 +16,15 @@ public class TradeAgentFactory {
 
         if (agent instanceof BuyerAgent) {
             classForAgentToBeCreated = BuyerAgent.class;
-        } else if (agent instanceof BookSellerAgent) {
-            classForAgentToBeCreated = BookSellerAgent.class;
+        } else if (agent instanceof BidderAgent) {
+            classForAgentToBeCreated = BidderAgent.class;
         }
 
         trader.setTradeAgent(agent);
 
         Object[] arguments;
         if (agent.getArguments() == null) {
-            arguments = new Object[0];
+            arguments = new Object[]{"3"};
         } else {
             arguments = agent.getArguments();
         }

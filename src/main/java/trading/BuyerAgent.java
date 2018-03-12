@@ -19,7 +19,6 @@ public class BuyerAgent extends Agent {
     private DFHelper helper;
     private BigDecimal initialPayment = BigDecimal.ZERO;
     private int percentage = 50;
-    private String nickname;
 
     protected void setup() {
         helper = DFHelper.getInstance();

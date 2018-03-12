@@ -2,6 +2,7 @@ import jade.core.*;
 import jade.core.Runtime;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
+import trading.BidderAgent;
 import trading.BookSellerAgent;
 import trading.BuyerAgent;
 
@@ -18,8 +19,7 @@ public class Simulation implements Serializable {
     public static void main(String[] args) throws StaleProxyException {
         Runtime jadeRuntime = Runtime.instance();
 
-        System.out.println("Launching the platform Main Container");
-        Profile profile = new ProfileImpl(null, 8888, null);
+        Profile profile = new ProfileImpl(null, 8567, null);
         profile.setParameter(Profile.GUI, "false");
 
         Simulation simulation = new Simulation();
@@ -34,13 +34,11 @@ public class Simulation implements Serializable {
         ArrayList<Trader> agents = new ArrayList<>();
 
         BuyerAgent buyerAgent = new BuyerAgent();
-//        String[] arguments = new String[3];
-//        buyerAgent.setArguments(arguments);
 
         agents.add(TradeAgentFactory.createTradeAgent("buyer1",buyerAgent, containerController));
 
-        BookSellerAgent bookSellerAgent = new BookSellerAgent();
-        agents.add(TradeAgentFactory.createTradeAgent("seller1",bookSellerAgent, containerController));
+        BidderAgent bidderAgent = new BidderAgent();
+        agents.add(TradeAgentFactory.createTradeAgent("seller1",bidderAgent, containerController));
 
         return agents;
     }
