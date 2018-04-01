@@ -17,8 +17,8 @@ import java.util.Random;
 public class BuyerAgent extends Agent {
     private static final long serialVersionUID = 1L;
     private DFHelper helper;
-    private BigDecimal initialPayment = BigDecimal.ZERO;
-    private int percentage = 50;
+    private BigDecimal initialOffer = BigDecimal.ZERO;
+    private int allowablePercentageDivergenceFromInitialOffer = 50;
 
     protected void setup() {
         helper = DFHelper.getInstance();
@@ -31,7 +31,7 @@ public class BuyerAgent extends Agent {
         if (args != null && args.length > 0) {
             String percentageArg = (String) args[0];
             if (percentageArg.matches("^\\d+$")) {
-                percentage = Integer.parseInt(percentageArg);
+                allowablePercentageDivergenceFromInitialOffer = Integer.parseInt(percentageArg);
             }
         }
 
@@ -72,8 +72,8 @@ public class BuyerAgent extends Agent {
                         System.out.println(getAID().getName() + " couldn't read the price.");
                     }
 
-                    if (initialPayment.compareTo(BigDecimal.ZERO) == 0) {
-                        initialPayment = payment;
+                    if (initialOffer.compareTo(BigDecimal.ZERO) == 0) {
+                        initialOffer = payment;
                     }
 
                     Random generate = new Random();
@@ -98,8 +98,8 @@ public class BuyerAgent extends Agent {
                     }
 
                     BigDecimal randomNumber = new BigDecimal(generate.nextInt(upperBound) + 1);
-                    BigDecimal lowerBound = initialPayment
-                            .multiply(new BigDecimal(percentage))
+                    BigDecimal lowerBound = initialOffer
+                            .multiply(new BigDecimal(allowablePercentageDivergenceFromInitialOffer))
                             .divide(new BigDecimal(100), BigDecimal.ROUND_CEILING);
 
                     if (randomNumber.compareTo(BigDecimal.ONE) < 0

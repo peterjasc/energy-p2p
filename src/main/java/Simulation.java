@@ -3,7 +3,6 @@ import jade.core.Runtime;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 import trading.BidderAgent;
-import trading.BookSellerAgent;
 import trading.BuyerAgent;
 
 import java.io.Serializable;
@@ -36,6 +35,10 @@ public class Simulation implements Serializable {
         BuyerAgent buyerAgent = new BuyerAgent();
 
         agents.add(TradeAgentFactory.createTradeAgent("buyer1",buyerAgent, containerController));
+
+        BuyerAgent buyerAgent2 = new BuyerAgent();
+
+        agents.add(TradeAgentFactory.createTradeAgent("buyer2",buyerAgent2, containerController));
 
         BidderAgent bidderAgent = new BidderAgent();
         agents.add(TradeAgentFactory.createTradeAgent("seller1",bidderAgent, containerController));

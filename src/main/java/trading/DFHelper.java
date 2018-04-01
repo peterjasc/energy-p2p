@@ -11,11 +11,6 @@ import jade.lang.acl.ACLMessage;
 
 import java.util.ArrayList;
 
-/**
- * This class is created upon initialization of a Carrier Agent (responder), 
- * a Company Agent (initiator) or an Employee Agent. Its purpose is to provide the agents 
- * with information relevant to the bidding process, as well as termination of agents.
- */
 public final class DFHelper extends Agent {
 	private static final long serialVersionUID = 1L;
 	private int respondersRemaining = 0;
@@ -33,11 +28,6 @@ public final class DFHelper extends Agent {
 		return instance;
 	}
 
-	/**
-	 * Register a new agent with given properties
-	 * @param agent - an agent
-	 * @param serviceDescription - properties for the agent
-	 */
 	public void register(Agent agent, ServiceDescription serviceDescription) {
 		DFAgentDescription dfAgentDescription = new DFAgentDescription();
 		dfAgentDescription.setName(getAID());
@@ -52,12 +42,6 @@ public final class DFHelper extends Agent {
 		}
 	}
 
-	/**
-	 * Searches for all the agents with a certain type.
-	 * @param agent - an agent
-	 * @param service - type to search for
-	 * @return - an array of AIDs (if any), or null (if none)
-	 */
 	public AID[] searchDF(Agent agent, String service) {
 		DFAgentDescription dfAgentDescription = new DFAgentDescription();
 		ServiceDescription serviceDescription = new ServiceDescription();
@@ -65,7 +49,7 @@ public final class DFHelper extends Agent {
 		dfAgentDescription.addServices(serviceDescription);
 
 		SearchConstraints findAll = new SearchConstraints();
-		findAll.setMaxResults(new Long(-1));
+		findAll.setMaxResults((long) -1);
 		
 		try {
 			DFAgentDescription[] result = DFService.search(agent, dfAgentDescription, findAll);
@@ -92,10 +76,6 @@ public final class DFHelper extends Agent {
 		msg.removeReceiver(agent);
 	}
 
-	/**
-	 * De-registers and kills the specified agent, but states that it simply "left" (brutal)
-	 * @param agent - an agent to kill
-	 */
 	public void killAgent(Agent agent) {
 		try {
 			System.out.println(agent.getAID().getName() + " left.");
@@ -106,18 +86,10 @@ public final class DFHelper extends Agent {
 		}
 	}
 
-	/**
-	 * Returns the total amount of responders left in the auction.
-	 * @return - ^
-	 */
 	public int getRespondersRemaining() {
 		return respondersRemaining;
 	}
 
-	/**
-	 * Returns a list of registered agents.
-	 * @return - ^
-	 */
 	public ArrayList<Agent> getRegisteredAgents() {
 		return registeredAgents;
 	}

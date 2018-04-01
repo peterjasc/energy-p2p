@@ -2,168 +2,160 @@ package trading;
 
 import jade.core.AID;
 import jade.core.Agent;
-import jade.core.behaviours.OneShotBehaviour;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPANames;
 import jade.lang.acl.ACLMessage;
 import jade.proto.ContractNetInitiator;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.Vector;
 
 public class BidderAgent extends Agent {
-	private static final long serialVersionUID = 1L;
-	private Hashtable<String, BigDecimal> availableOffers;
-	private ArrayList<BigDecimal> paymentList;
-	private DFHelper helper;
-	private String payment = null;
+    private static final long serialVersionUID = 1L;
+    private ArrayList<BigDecimal> receivedOffers;
+    private DFHelper helper;
+    private String offer = null;
 
     protected void setup() {
-		helper = DFHelper.getInstance();
-		availableOffers = new Hashtable<>();
+        helper = DFHelper.getInstance();
 
-		Object[] args = getArguments();
-		if (args.length == 1) {
-			payment = (String) args[0];
-			
-			if (payment.matches("^(\\d|.)+$")) {
-                BigDecimal initialPayment = new BigDecimal(payment);
+        Object[] args = getArguments();
+        if (args.length == 1) {
+            offer = (String) args[0];
 
-				updateJobListings(getLocalName(), initialPayment);
+            if (offer.matches("^(\\d|.)+$")) {
+                BigDecimal initialOffer = new BigDecimal(offer);
+                System.out.println(getAID().getName() + " has issued a new offer, at $" + offer + ".\n");
 
-				paymentList = new ArrayList<>();
-				paymentList.add(initialPayment);
+                receivedOffers = new ArrayList<>();
+                receivedOffers.add(initialOffer);
 
-				ServiceDescription serviceDescription = new ServiceDescription();
-				serviceDescription.setType("Bidder");
-				serviceDescription.setName(getLocalName());
-				helper.register(this, serviceDescription);
-			} else {
-				System.out.println("Payment must be a positive floating point number.");
-				System.out.println("Terminating: " + this.getAID().getName());
-				doDelete();
-			}
-		} else {
-			System.out.println("One argument required. Please provide a floating point number.");
-			System.out.println("Terminating: " + this.getAID().getName());
-			doDelete();
-		}
+                ServiceDescription serviceDescription = new ServiceDescription();
+                serviceDescription.setType("Bidder");
+                serviceDescription.setName(getLocalName());
+                helper.register(this, serviceDescription);
+            } else {
+                System.out.println("Payment must be a positive decimal number.");
+                System.out.println("Terminating: " + this.getAID().getName());
+                doDelete();
+            }
+        } else {
+            System.out.println("One argument required. Please provide a floating point number.");
+            System.out.println("Terminating: " + this.getAID().getName());
+            doDelete();
+        }
 
-		addBehaviour(new ContractNetInitiator(this, null) {
-			private static final long serialVersionUID = 1L;
-			private int globalResponses = 0;
+        addBehaviour(new ContractNetInitiator(this, null) {
+            private static final long serialVersionUID = 1L;
+            private int globalResponses = 0;
 
-			public Vector<ACLMessage> prepareCfps(ACLMessage init) {
-				init = new ACLMessage(ACLMessage.CFP);
-				Vector<ACLMessage> messages = new Vector<>();
+            public Vector<ACLMessage> prepareCfps(ACLMessage init) {
+                init = new ACLMessage(ACLMessage.CFP);
+                Vector<ACLMessage> messages = new Vector<>();
 
-				AID[] agents = helper.searchDF(getAgent(), "Buyer");
+                AID[] agents = helper.searchDF(getAgent(), "Buyer");
 
-				System.out.println("The Directory Facilitator found the following agents labeled as \"Buyer\": ");
-				for (AID agent : agents) {
-					System.out.println(agent.getName());
-					init.addReceiver(new AID(agent.getLocalName(), AID.ISLOCALNAME));
-				}
-				System.out.println();
+                System.out.println("The Directory Facilitator found the following agents labeled as \"Buyer\": ");
+                for (AID agent : agents) {
+                    System.out.println(agent.getName());
+                    init.addReceiver(new AID(agent.getLocalName(), AID.ISLOCALNAME));
+                }
+                System.out.println();
 
-				if (agents.length == 0) {
-					System.out.println("No agents matching the type were found. Terminating: " + getAgent().getAID().getName());
-					helper.killAgent(getAgent());
-				} else {
-					init.setProtocol(FIPANames.InteractionProtocol.FIPA_ITERATED_CONTRACT_NET);
-					init.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
-					init.setContent(getLocalName() + "|" + payment);
+                if (agents.length == 0) {
+                    System.out.println("No agents matching the type were found. Terminating: "
+                            + getAgent().getAID().getName());
+                    helper.killAgent(getAgent());
+                } else {
+                    init.setProtocol(FIPANames.InteractionProtocol.FIPA_ITERATED_CONTRACT_NET);
+                    init.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
+                    init.setContent(getLocalName() + "|" + offer);
 
-					messages.addElement(init);
-				}
+                    messages.addElement(init);
+                }
 
-				return messages;
-			}
+                return messages;
+            }
 
-			protected void handlePropose(ACLMessage propose, Vector v) {
-				System.out.println(propose.getSender().getName() + " proposes $" + propose.getContent() + "\".");
-			}
+            protected void handlePropose(ACLMessage propose, Vector v) {
+                System.out.println(propose.getSender().getName() + " proposes $" + propose.getContent() + "\".");
+            }
 
-			protected void handleRefuse(ACLMessage refuse) {
-				globalResponses++;
-				System.out.println(refuse.getSender().getName() + " is not willing to bid any higher.");
-				helper.removeReceiverAgent(refuse.getSender(), refuse);
-			}
+            protected void handleRefuse(ACLMessage refuse) {
+                globalResponses++;
+                System.out.println(refuse.getSender().getName() + " is not willing to bid any higher.");
+                helper.removeReceiverAgent(refuse.getSender(), refuse);
+            }
 
-			protected void handleFailure(ACLMessage failure) {
-				globalResponses++;
-				System.out.println(failure.getSender().getName() + " failed to reply.");
-				helper.removeReceiverAgent(failure.getSender(), failure);
-			}
+            protected void handleFailure(ACLMessage failure) {
+                globalResponses++;
+                System.out.println(failure.getSender().getName() + " failed to reply.");
+                helper.removeReceiverAgent(failure.getSender(), failure);
+            }
 
-			protected void handleInform(ACLMessage inform) {
-				globalResponses++;
-				System.out.println("\n" + getAID().getName() + " has no stored power available.");
-				availableOffers.remove(getLocalName());
-				for (Agent agent : helper.getRegisteredAgents()) {
-					helper.killAgent(agent);
-				}
-			}
-			
-			protected void handleAllResponses(Vector responses, Vector acceptances) {
-				int agentsLeft = responses.size() - globalResponses;
-				globalResponses = 0;
+            protected void handleInform(ACLMessage inform) {
+                globalResponses++;
+                System.out.println("\n" + getAID().getName() + " has no stored power available.");
+                for (Agent agent : helper.getRegisteredAgents()) {
+                    helper.killAgent(agent);
+                }
+            }
 
-				System.out.println("\n" + getAID().getName() + " got " + agentsLeft + " responses.");
+            protected void handleAllResponses(Vector responses, Vector acceptances) {
+                int agentsLeft = responses.size() - globalResponses;
+                globalResponses = 0;
 
-				BigDecimal bestProposal = new BigDecimal(payment);
-				ACLMessage reply = new ACLMessage(ACLMessage.CFP);
-				Vector<ACLMessage> cfps = new Vector<>();
-				Enumeration<?> responseList = responses.elements();
-				ArrayList<ACLMessage> responderList = new ArrayList<>();
+                System.out.println("\n" + getAID().getName() + " got " + agentsLeft + " responses.");
 
-				while (responseList.hasMoreElements()) {
-					ACLMessage msg = (ACLMessage) responseList.nextElement();
-					if (msg.getPerformative() == ACLMessage.PROPOSE) {
-						BigDecimal proposal = new BigDecimal(msg.getContent());
-						reply = msg.createReply();
-						reply.setPerformative(ACLMessage.CFP);
-						responderList.add(reply);
-						if (proposal.compareTo(bestProposal) > 0) {
-							bestProposal = proposal;
-						}
-						cfps.addElement(reply);
-					}
-				}
-				if (agentsLeft > 1) {
-					paymentList.add(bestProposal);
+                BigDecimal bestProposal = new BigDecimal(offer);
+                ACLMessage reply = new ACLMessage(ACLMessage.CFP);
+                Vector<ACLMessage> cfps = new Vector<>();
+                Enumeration<?> receivedResponses = responses.elements();
 
-					for (int i = 0; i < responderList.size(); i++) {
-						responderList.get(i).setContent(getLocalName() + "|" + bestProposal);
-						cfps.set(i, responderList.get(i));
-					}
-					
-					System.out.println(agentsLeft + " buyers are still bidding. Proceeding to the next round.");
-					System.out.println(getAID().getName() + " is issuing CFP's with a payment of $" + paymentList.get(paymentList.size() - 1) + ".\n");
-					newIteration(cfps);
-				} else if (agentsLeft == 1) {
-					reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
-					if (bestProposal.compareTo(paymentList.get(paymentList.size() - 1)) >= 0) {
-						reply.setContent(getLocalName() + "|" + bestProposal);
-						reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-					}
-					acceptances.addElement(reply);
-				} else {
-					System.out.println("No agent accepted the job.");
-				}
-			}
+                ArrayList<ACLMessage> replies = new ArrayList<>();
 
-		});
-	}
+                while (receivedResponses.hasMoreElements()) {
+                    ACLMessage msg = (ACLMessage) receivedResponses.nextElement();
+                    if (msg.getPerformative() == ACLMessage.PROPOSE) {
+                        BigDecimal proposal = new BigDecimal(msg.getContent());
+                        reply = msg.createReply();
+                        reply.setPerformative(ACLMessage.CFP);
+                        replies.add(reply);
+                        if (proposal.compareTo(bestProposal) > 0) {
+                            bestProposal = proposal;
+                        }
+                        cfps.addElement(reply);
+                    }
+                }
+                if (agentsLeft > 1) {
+                    receivedOffers.add(bestProposal);
 
-	private void updateJobListings(final String agentLocalName, final BigDecimal payment) {
-		addBehaviour(new OneShotBehaviour() {
-			private static final long serialVersionUID = 1L;
+                    for (int i = 0; i < replies.size(); i++) {
+                        replies.get(i).setContent(getLocalName() + "|" + bestProposal);
+                        cfps.set(i, replies.get(i));
+                    }
 
-			public void action() {
-				availableOffers.put(agentLocalName, payment);
-				System.out.println(getAID().getName() + " has issued a new offer, at $" + payment + ".\n");
-			}
-		});
-	}
+                    System.out.println(agentsLeft + " buyers are still bidding. Proceeding to the next round.");
+                    System.out.println(getAID().getName()
+                            + " is issuing CFP's with a offer of $"
+                            + receivedOffers.get(receivedOffers.size() - 1) + ".\n");
+                    newIteration(cfps);
+                } else if (agentsLeft == 1) {
+                    reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
+                    if (bestProposal.compareTo(receivedOffers.get(receivedOffers.size() - 1)) >= 0) {
+                        reply.setContent(getLocalName() + "|" + bestProposal);
+                        reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+                    }
+                    acceptances.addElement(reply);
+                } else {
+                    System.out.println("No agent accepted the job.");
+                }
+            }
+
+        });
+    }
+
 }
