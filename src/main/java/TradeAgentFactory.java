@@ -3,7 +3,6 @@ import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 import trading.BidderAgent;
-import trading.BookSellerAgent;
 import trading.BuyerAgent;
 
 public class TradeAgentFactory {

@@ -35,6 +35,10 @@ public class BuyerAgent extends Agent {
             }
         }
 
+        registerBehaviour();
+    }
+
+    private void registerBehaviour() {
         final String IP = FIPANames.InteractionProtocol.FIPA_ITERATED_CONTRACT_NET;
         MessageTemplate template = MessageTemplate.and(MessageTemplate.MatchProtocol(IP),
                 MessageTemplate.MatchPerformative(ACLMessage.CFP));
