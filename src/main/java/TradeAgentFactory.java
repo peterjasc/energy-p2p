@@ -12,21 +12,22 @@ public class TradeAgentFactory {
 
         Class<?> classForAgentToBeCreated = null;
         AgentController createdAgentController;
+        Object[] arguments = null;
 
         if (agent instanceof BuyerAgent) {
             classForAgentToBeCreated = BuyerAgent.class;
         } else if (agent instanceof BidderAgent) {
             classForAgentToBeCreated = BidderAgent.class;
+            if (agent.getArguments() == null) {
+                arguments = new Object[]{"300"};
+            } else {
+                arguments = agent.getArguments();
+            }
         }
 
         trader.setTradeAgent(agent);
 
-        Object[] arguments;
-        if (agent.getArguments() == null) {
-            arguments = new Object[]{"3"};
-        } else {
-            arguments = agent.getArguments();
-        }
+
 
         createdAgentController = containerController
                 .createNewAgent(nickname, classForAgentToBeCreated.getName(),arguments);

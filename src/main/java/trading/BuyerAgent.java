@@ -2,8 +2,6 @@ package trading;
 
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
-import jade.core.behaviours.ParallelBehaviour;
-import jade.core.behaviours.SequentialBehaviour;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPANames;
 import jade.lang.acl.ACLMessage;
@@ -18,7 +16,7 @@ public class BuyerAgent extends Agent {
     private static final long serialVersionUID = 1L;
     private DFHelper helper;
     private BigDecimal initialOffer = BigDecimal.ZERO;
-    private int allowablePercentageDivergenceFromInitialOffer = 50;
+    private int allowablePercentageDivergenceFromInitialOffer = 90;
 
     protected void setup() {
         helper = DFHelper.getInstance();
@@ -57,77 +55,54 @@ public class BuyerAgent extends Agent {
             return new SSIteratedContractNetResponder(myAgent, message) {
                 private static final long serialVersionUID = 1L;
 
-                /**
-                 * Responds to the CFP message from the initiator with either a PROPOSE/REFUSE message.
-                 * If the payment is too low for the agent, it declines with a REFUSE message,
-                 * otherwise, the agent will respond with a PROPOSE message.
-                 */
                 protected ACLMessage handleCfp(ACLMessage cfp) {
-                    BigDecimal payment = BigDecimal.ZERO;
-                    BigDecimal backupPayment = BigDecimal.ZERO;
+                    BigDecimal receivedOffer = BigDecimal.ZERO;
                     try {
-                        payment = new BigDecimal(cfp.getContent().substring(cfp.getContent().lastIndexOf("|") + 1));
-                        backupPayment = payment;
+                        receivedOffer = new BigDecimal(cfp.getContent().substring(cfp.getContent().lastIndexOf("|") + 1));
                     } catch (Exception e) {
                         System.out.println(getAID().getName() + " couldn't read the price.");
                     }
 
                     if (initialOffer.compareTo(BigDecimal.ZERO) == 0) {
-                        initialOffer = payment;
+                        initialOffer = receivedOffer;
                     }
 
                     Random generate = new Random();
 
                     int upperBound;
-                    // todo
-                    int length = String.valueOf(payment).length();
+                    int length = String.valueOf(receivedOffer).length();
 
-                    switch (length) {
-                        case 1:
-                            upperBound = 1;
-                            break;
-                        case 2:
-                            upperBound = 5;
-                            break;
-                        case 3:
-                            upperBound = 50;
-                            break;
-                        default:
-                            upperBound = 300;
-                            break;
+                    if (length == 1) {
+                        upperBound = 1;
+                    } else if (length == 2) {
+                        upperBound = 5;
+                    } else if (length == 3) {
+                        upperBound = 50;
+                    } else {
+                        upperBound = 200;
                     }
 
-                    BigDecimal randomNumber = new BigDecimal(generate.nextInt(upperBound) + 1);
                     BigDecimal lowerBound = initialOffer
                             .multiply(new BigDecimal(allowablePercentageDivergenceFromInitialOffer))
                             .divide(new BigDecimal(100), BigDecimal.ROUND_CEILING);
+                    BigDecimal lowerOffer = lowerBound;
 
-                    if (randomNumber.compareTo(BigDecimal.ONE) < 0
-                            && (payment.subtract(randomNumber)).compareTo(lowerBound) > 0) {
-                        payment = (payment.subtract(randomNumber));
-                    } else {
-                        payment = BigDecimal.ZERO;
+                    while (lowerOffer.compareTo(lowerBound) <= 0) {
+                        BigDecimal randomNumber = new BigDecimal(generate.nextInt(upperBound) + 1);
+                        lowerOffer = receivedOffer.subtract(randomNumber);
                     }
 
                     ACLMessage response = cfp.createReply();
 
-                    if (payment.compareTo(BigDecimal.ZERO) > 0) {
+                    if (lowerOffer.compareTo(lowerBound) > 0) {
                         response.setPerformative(ACLMessage.PROPOSE);
                         if (helper.getRespondersRemaining() == 1) {
-                            response.setContent(String.valueOf(backupPayment));
+                            response.setContent(String.valueOf(receivedOffer));
                         } else {
-                            response.setContent(String.valueOf(payment));
+                            response.setContent(String.valueOf(lowerOffer));
                         }
                     } else {
-                        upperBound = generate.nextInt(3000) + 1000;
-                        doWait(upperBound);
-
-                        if (helper.getRespondersRemaining() == 1) {
-                            response.setPerformative(ACLMessage.PROPOSE);
-                            response.setContent(String.valueOf(backupPayment));
-                        } else {
-                            response.setPerformative(ACLMessage.REFUSE);
-                        }
+                        response.setPerformative(ACLMessage.REFUSE);
                     }
                     return response;
                 }
@@ -138,7 +113,7 @@ public class BuyerAgent extends Agent {
                         BigDecimal payment = BigDecimal.ZERO;
                         try {
                             agentName = accept.getContent().substring(0, accept.getContent().indexOf("|"));
-                            payment = new BigDecimal (accept.getContent().substring(accept.getContent().lastIndexOf("|") + 1));
+                            payment = new BigDecimal(accept.getContent().substring(accept.getContent().lastIndexOf("|") + 1));
                         } catch (Exception e) {
                         }
 
@@ -156,7 +131,7 @@ public class BuyerAgent extends Agent {
 
                 protected void handleRejectProposal(ACLMessage msg, ACLMessage propose, ACLMessage reject) {
                     System.out.println(reject.getSender().getName() + " rejected offer " + getAID().getName()
-                        + " for unexpected reasons");
+                            + " for unexpected reasons");
                 }
             };
         }
