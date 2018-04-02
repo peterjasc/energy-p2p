@@ -43,11 +43,7 @@ public class BuyerAgent extends Agent {
         MessageTemplate template = MessageTemplate.and(MessageTemplate.MatchProtocol(IP),
                 MessageTemplate.MatchPerformative(ACLMessage.CFP));
 
-        SequentialBehaviour sequential = new SequentialBehaviour();
-        addBehaviour(sequential);
-        ParallelBehaviour parallel = new ParallelBehaviour(ParallelBehaviour.WHEN_ALL);
-        sequential.addSubBehaviour(parallel);
-        parallel.addSubBehaviour(new CustomContractNetResponder(this, template));
+        addBehaviour(new CustomContractNetResponder(this, template));
     }
 
     private class CustomContractNetResponder extends SSResponderDispatcher {
