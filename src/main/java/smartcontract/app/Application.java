@@ -12,7 +12,6 @@ import org.web3j.tx.ManagedTransaction;
 import org.web3j.tx.Transfer;
 import org.web3j.utils.Convert;
 import org.web3j.utils.Numeric;
-import smartcontract.app.generated.Greeter;
 
 import java.math.BigDecimal;
 

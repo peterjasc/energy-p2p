@@ -4,8 +4,6 @@ import jade.core.Agent;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
-import trading.BidderAgent;
-import trading.BuyerAgent;
 
 public class TradeAgentFactory {
     public static Trader createTradeAgent(String nickname, Agent agent, ContainerController containerController) throws StaleProxyException {

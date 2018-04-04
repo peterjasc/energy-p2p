@@ -1,3 +1,5 @@
+package trading;
+
 import java.io.Serializable;
 
 import jade.core.Agent;

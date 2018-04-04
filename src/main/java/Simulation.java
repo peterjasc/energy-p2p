@@ -4,6 +4,8 @@ import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 import trading.BidderAgent;
 import trading.BuyerAgent;
+import trading.TradeAgentFactory;
+import trading.Trader;
 
 import java.io.Serializable;
 import java.util.ArrayList;
