@@ -1,4 +1,4 @@
-pragma solidity ^0.4.8;
+pragma solidity ^0.4.21;
 contract SmartContract {
     Contract[] public contracts; //array of open contracts
     event BidAccepted(uint indexed age, uint indexed height);
@@ -30,15 +30,13 @@ contract SmartContract {
         count = 0;
     }
 
-    function addContract(uint _cId, bytes32 _asset, uint _quantity, uint _targetPrice, uint _targetTime, bytes32 _extra) returns (bool success) {
+    function addContract(uint _cId , uint _quantity, uint _targetPrice, uint _targetTime) returns (bool success) {
         Contract memory newContract; //creates new struct and memory
         /*Date memory _date;*/
         newContract.contractId = _cId;
-        newContract.asset = _asset;
         newContract.quantity = _quantity;
         newContract.targetPrice = _targetPrice;
         newContract.targetTime = _targetTime;
-        newContract.extra = _extra;
         contracts.push(newContract);//add elem to array
         return true;
     }
@@ -54,27 +52,23 @@ contract SmartContract {
         return true;
     }
 
-    function getClosedContracts() constant returns (uint[], bytes32[], uint[], uint[], uint[], bytes32[]) {
+    function getClosedContracts() constant returns (uint[], uint[], uint[], uint[]) {
         uint length = contracts.length;
         uint[] memory contractId = new uint[](length);
-        bytes32[] memory asset = new bytes32[](length);
         uint[] memory qty = new uint[](length);
         uint[] memory targetPrice = new uint[](length);
         uint[] memory targetTime = new uint[](length);
-        bytes32[] memory extraField1 = new bytes32[](length);
 
         for (uint i = 0; i < contracts.length; i++) {
             Contract memory currentContract;
             currentContract = contracts[i];
 
               contractId[i] = currentContract.contractId;
-              asset[i] = currentContract.asset;
               qty[i] = currentContract.quantity;
               targetPrice[i] = currentContract.targetPrice;
               targetTime[i] = currentContract.targetTime;
-              extraField1[i] = currentContract.extra;
         }
-        return (contractId, asset, qty, targetPrice, targetTime, extraField1);
+        return (contractId, qty, targetPrice, targetTime);
     }
 
     function getBid(uint _cid) constant returns (uint, bytes32, uint, uint){
