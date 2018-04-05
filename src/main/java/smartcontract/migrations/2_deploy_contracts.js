@@ -1,4 +1,4 @@
-var SmartContract = artifacts.require("./SmartContract.sol");
+var SmartContract = artifacts.require("./contracts/SmartContract.sol");
 
 module.exports = function(deployer) {
   deployer.deploy(SmartContract);

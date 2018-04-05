@@ -1,12 +1,12 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.20;
 contract SmartContract {
-    Contract[] public contracts; //array of open contracts
+    Contract[] public contracts;
     event BidAccepted(uint indexed age, uint indexed height);
 
 //Bid[] public bids;
     mapping(uint => Bid) bidMap;
     uint bidTableContractId = 0;
-    uint count; //number of contracts
+    uint noOfContracts;
     /*struct Date {
         uint day;
         uint month;
@@ -27,7 +27,7 @@ contract SmartContract {
     }
 
     function SmartContract() {
-        count = 0;
+        noOfContracts = 0;
     }
 
     function addContract(uint _cId , uint _quantity, uint _targetPrice, uint _targetTime) returns (bool success) {

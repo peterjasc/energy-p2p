@@ -27,4 +27,7 @@ gradlew.bat
 out/
 private-testnet/
 
+node_modules/
+
+
 src/main/java/smartcontract/app/generated/

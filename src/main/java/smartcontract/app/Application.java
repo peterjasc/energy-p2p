@@ -11,7 +11,7 @@ import org.web3j.tx.Contract;
 import org.web3j.tx.ManagedTransaction;
 import org.web3j.tx.Transfer;
 import org.web3j.utils.Convert;
-import org.web3j.utils.Numeric;
+import smartcontract.app.generated.SmartContract;
 
 import java.math.BigDecimal;
 
@@ -50,42 +50,41 @@ public class Application {
     }
 
     private void run() throws Exception {
-
         // We start by creating a new web3j instance to connect to remote nodes on the network.
         Web3j web3j = Web3j.build(new HttpService(
-                "https://rinkeby.infura.io/<your token>"));  // FIXME: Enter your Infura token here;
+                "http://localhost:8110"));
         log.info("Connected to Ethereum client version: "
                 + web3j.web3ClientVersion().send().getWeb3ClientVersion());
 
-        // We then need to load our Ethereum wallet file
-        // FIXME: Generate a new wallet file using the web3j command line tools https://docs.web3j.io/command_line.html
         Credentials credentials =
                 WalletUtils.loadCredentials(
-                        "<password>",
-                        "/path/to/<walletfile>");
+                        "password",
+                        "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
         log.info("Credentials loaded");
 
-        // FIXME: Request some Ether for the Rinkeby test network at https://www.rinkeby.io/#faucet
-        log.info("Sending 1 Wei ("
-                + Convert.fromWei("1", Convert.Unit.ETHER).toPlainString() + " Ether)");
-        TransactionReceipt transferReceipt = Transfer.sendFunds(
-                web3j, credentials,
-                "0x19e03255f667bdfd50a32722df860b1eeaf4d635",  // you can put any address here
-                BigDecimal.ONE, Convert.Unit.WEI)  // 1 wei = 10^-18 Ether
-                .send();
-        log.info("Transaction complete, view it at https://rinkeby.etherscan.io/tx/"
-                + transferReceipt.getTransactionHash());
+//        log.info("Sending 1 Wei ("
+//                + Convert.fromWei("1", Convert.Unit.ETHER).toPlainString() + " Ether)");
+//        TransactionReceipt transferReceipt = Transfer.sendFunds(
+//                web3j, credentials,
+//                "0x19e03255f667bdfd50a32722df860b1eeaf4d635",  // you can put any address here
+//                BigDecimal.ONE, Convert.Unit.WEI)  // 1 wei = 10^-18 Ether
+//                .send();
+//        log.info("Transaction complete, view it at "
+//                + transferReceipt.getTransactionHash());
 
         // Now lets deploy a smart contract
-        log.info("Deploying smart contract");
-//        Greeter contract = Greeter.deploy(
+//        log.info("Deploying smart contract");
+//        SmartContract contract = SmartContract.deploy(
 //                web3j, credentials,
-//                ManagedTransaction.GAS_PRICE, Contract.GAS_LIMIT,
-//                "Hello blockchain world!").send();
+//                ManagedTransaction.GAS_PRICE, Contract.GAS_LIMIT).send();
 
-//        String contractAddress = contract.getContractAddress();
-//        log.info("Smart contract deployed to address " + contractAddress);
-//        log.info("View contract at https://rinkeby.etherscan.io/address/" + contractAddress);
+
+        SmartContract contract = SmartContract.load(
+                "0x6ee6a152166d8916e861bae600c02e3a17208ffe", web3j, credentials, ManagedTransaction.GAS_PRICE, Contract.GAS_LIMIT);
+
+        String contractAddress = contract.getContractAddress();
+        log.info("Smart contract deployed to address " + contractAddress);
+        log.info("View contract at " + contractAddress);
 
 //        log.info("Value stored in remote smart contract: " + contract.greet().send());
 
