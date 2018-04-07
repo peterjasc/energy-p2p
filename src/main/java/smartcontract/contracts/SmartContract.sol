@@ -1,29 +1,14 @@
 pragma solidity ^0.4.20;
 contract SmartContract {
     Contract[] public contracts;
-    event BidAccepted(uint indexed age, uint indexed height);
-
-//Bid[] public bids;
-    mapping(uint => Bid) bidMap;
-    uint bidTableContractId = 0;
+    event BidAccepted(uint indexed contractId, uint indexed contractIndex);
     uint noOfContracts;
-    /*struct Date {
-        uint day;
-        uint month;
-        uint year;
-    }*/
+
     struct Contract {
         uint contractId;
         uint quantity;
         uint targetPrice;
         uint targetTime;
-    }
-    struct Bid {
-        uint contractId;
-        bytes32 supplier;
-        address owner;
-        uint price;
-        uint bidTime;
     }
 
     function SmartContract() {
@@ -38,17 +23,7 @@ contract SmartContract {
         newContract.targetPrice = _targetPrice;
         newContract.targetTime = _targetTime;
         contracts.push(newContract);//add elem to array
-        return true;
-    }
-
-    function bid(uint _cid, bytes32 _supplier, uint _price, uint _bidTime) returns (bool success) {
-        Bid memory newBid;
-        newBid.contractId = _cid;
-        newBid.supplier = _supplier;
-        newBid.price = _price;
-        newBid.bidTime = _bidTime;
-        newBid.owner = msg.sender;
-        bidMap[_cid] = newBid;
+        BidAccepted(_cId, contractIndex);
         return true;
     }
 
@@ -71,12 +46,8 @@ contract SmartContract {
         return (contractId, qty, targetPrice, targetTime);
     }
 
-    function getBid(uint _cid) constant returns (uint, bytes32, uint, uint){
-        var bidMade = bidMap[_cid];
-        uint contractId = bidMade.contractId;
-        bytes32 supplier = bidMade.supplier;
-        uint price = bidMade.price;
-        uint timeToComplete = bidMade.bidTime;
-        return (contractId, supplier, price, timeToComplete);
+    function getContractByIndex(uint _index) constant returns (uint[], uint[], uint[], uint[]) {
+        
     }
+
 }
