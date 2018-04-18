@@ -11,11 +11,19 @@ class BidAcceptedEventSubscriber extends Subscriber<SmartContract.BidAcceptedEve
 
     @Override
     public void onError(Throwable e) {
-        System.out.println("error" + e);
+       e.printStackTrace();
     }
 
     @Override
     public void onNext(SmartContract.BidAcceptedEventResponse o) {
-        System.out.println("objectEvent " + o);
+        System.out.println();
+        System.out.println("contractId " + o.contractId);
+        System.out.println("bidder " + o.bidder);
+        System.out.println("price " + o.price);
+        System.out.println("quantity " + o.quantity);
+        System.out.println("time " + o.time);
+        System.out.println("log " + o.log);
+
+
     }
 }

@@ -12,6 +12,8 @@ import org.web3j.tx.ManagedTransaction;
 import rx.Subscriber;
 import smartcontract.app.generated.SmartContract;
 
+import java.math.BigInteger;
+
 public class Application {
 
     private static final Logger log = LoggerFactory.getLogger(Application.class);
@@ -39,19 +41,21 @@ public class Application {
 //        System.exit(0);
 
         SmartContract contract = SmartContract.load(
-                "0x5F46B91769556Bff249915ba536892285D0C1e53", web3j, credentials, ManagedTransaction.GAS_PRICE, Contract.GAS_LIMIT);
+                "0xf29ea22795b80856b45E09133F84B99827f20368", web3j, credentials, ManagedTransaction.GAS_PRICE, Contract.GAS_LIMIT);
         log.info("Contract is valid: " + contract.isValid());
         String contractAddress = contract.getContractAddress();
         log.info("Smart contract deployed to address " + contractAddress);
 
-        //uint _cId, uint _quantity, uint _targetPrice, uint _targetTime)
 
-//        log.info("Value stored in remote smart contract: " + contract.addContract(
-//                new BigInteger("1", 10),
-//                new BigInteger("10", 10),
-//                new BigInteger("10", 10),
-//                new BigInteger("1000", 10)
-//        ).send());
+//        event BidAccepted(uint indexed contractId, address indexed bidder, uint quantity, uint price, uint time);
+
+        log.info("Value stored in remote smart contract: " + contract.addContract(
+                new BigInteger("1", 10),
+                "0x521892450a22dc762198f6ce597cfc6d85f673a3",
+                new BigInteger("10", 10),
+                new BigInteger("10", 10),
+                new BigInteger("1000", 10)
+        ).send());
 
         Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new BidAcceptedEventSubscriber();
 
