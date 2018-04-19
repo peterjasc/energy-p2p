@@ -3,7 +3,7 @@ package smartcontract.app;
 import rx.Subscriber;
 import smartcontract.app.generated.SmartContract;
 
-class BidAcceptedEventSubscriber extends Subscriber<SmartContract.BidAcceptedEventResponse> {
+public class BuyersSubscriber extends Subscriber<SmartContract.BidAcceptedEventResponse> {
     @Override
     public void onCompleted() {
         System.out.println("onCompleted");

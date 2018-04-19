@@ -8,15 +8,27 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.proto.SSIteratedContractNetResponder;
 import jade.proto.SSResponderDispatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.web3j.crypto.Credentials;
+import org.web3j.protocol.Web3j;
+import rx.Subscriber;
+import smartcontract.app.BuyersSubscriber;
+import smartcontract.app.generated.SmartContract;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Random;
 
 public class BuyerAgent extends Agent {
     private static final long serialVersionUID = 1L;
+    private static final Logger log = LoggerFactory.getLogger(BuyerAgent.class);
+
     private DFHelper helper;
     private BigDecimal initialOffer = BigDecimal.ZERO;
     private int allowablePercentageDivergenceFromInitialOffer = 90;
+
+    private SmartContract smartContract;
 
     protected void setup() {
         helper = DFHelper.getInstance();
@@ -31,12 +43,24 @@ public class BuyerAgent extends Agent {
             if (percentageArg.matches("^\\d+$")) {
                 allowablePercentageDivergenceFromInitialOffer = Integer.parseInt(percentageArg);
             }
+
+            loadContractFromChain();
         }
 
-        registerBehaviour();
+        registerInteractionProtocolBehaviour();
     }
 
-    private void registerBehaviour() {
+    private void loadContractFromChain() {
+        ChainConnector chainConnector = new ChainConnector().invoke("password",
+                "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
+        Web3j web3j = chainConnector.getWeb3j();
+        Credentials credentials = chainConnector.getCredentials();
+
+        Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new BuyersSubscriber();
+        smartContract = new ContractLoader(web3j, credentials).invoke(subscriber);
+    }
+
+    private void registerInteractionProtocolBehaviour() {
         final String IP = FIPANames.InteractionProtocol.FIPA_ITERATED_CONTRACT_NET;
         MessageTemplate template = MessageTemplate.and(MessageTemplate.MatchProtocol(IP),
                 MessageTemplate.MatchPerformative(ACLMessage.CFP));
@@ -115,6 +139,18 @@ public class BuyerAgent extends Agent {
                             agentName = accept.getContent().substring(0, accept.getContent().indexOf("|"));
                             payment = new BigDecimal(accept.getContent().substring(accept.getContent().lastIndexOf("|") + 1));
                         } catch (Exception e) {
+                        }
+
+                        try {
+                            log.info("Value stored in remote smart contract: " + smartContract.addContract(
+                                    new BigInteger("1", 10),
+                                    "0x521892450a22dc762198f6ce597cfc6d85f673a3",
+                                    new BigInteger("10", 10),
+                                    new BigInteger("10", 10),
+                                    new BigInteger("1000", 10)
+                            ).send());
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
 
                         System.out.println(getAID().getName() + " has accepted the offer from "

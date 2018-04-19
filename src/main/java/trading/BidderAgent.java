@@ -6,6 +6,15 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPANames;
 import jade.lang.acl.ACLMessage;
 import jade.proto.ContractNetInitiator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.web3j.crypto.Credentials;
+import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+import rx.Subscriber;
+import smartcontract.app.BiddersSubscriber;
+import smartcontract.app.BuyersSubscriber;
+import smartcontract.app.generated.SmartContract;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -15,6 +24,8 @@ import java.util.Vector;
 
 public class BidderAgent extends Agent {
     private static final long serialVersionUID = 1L;
+    private static final Logger log = LoggerFactory.getLogger(BidderAgent.class);
+
     private ArrayList<BigDecimal> receivedOffers;
     private DFHelper helper;
     private String offer = null;
@@ -25,6 +36,8 @@ public class BidderAgent extends Agent {
         Object[] args = getArguments();
         if (args.length == 1) {
             offer = (String) args[0];
+
+            loadContractFromChain();
 
             if (offer.matches("^(\\d|.)+$")) {
                 BigDecimal initialOffer = new BigDecimal(offer);
@@ -49,6 +62,15 @@ public class BidderAgent extends Agent {
         }
 
         addBehaviour(new CustomContractNetInitiator(this, null));
+    }
+
+    private void loadContractFromChain() {
+        ChainConnector chainConnector = new ChainConnector().invoke("password",
+                "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
+        Web3j web3j = chainConnector.getWeb3j();
+        Credentials credentials = chainConnector.getCredentials();
+        Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new BiddersSubscriber();
+        SmartContract contract = new ContractLoader(web3j, credentials).invoke(subscriber);
     }
 
     private class CustomContractNetInitiator extends ContractNetInitiator {

@@ -57,7 +57,7 @@ public class Application {
                 new BigInteger("1000", 10)
         ).send());
 
-        Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new BidAcceptedEventSubscriber();
+        Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new BuyersSubscriber();
 
         contract.bidAcceptedEventObservable(
                 DefaultBlockParameterName.fromString(DefaultBlockParameterName.EARLIEST.getValue()),
