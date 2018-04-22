@@ -8,12 +8,12 @@ import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.tx.Contract;
 import org.web3j.tx.ManagedTransaction;
 import rx.Subscriber;
-import smartcontract.app.BuyersSubscriber;
 import smartcontract.app.generated.SmartContract;
 
 import java.io.IOException;
 
 class ContractLoader {
+    public static final String CONTRACT_ADDRESS = "0xB08a4Aa7904d50155d10B8cE447Cc4b3fae212A4";
     private Web3j web3j;
     private Credentials credentials;
     private static final Logger log = LoggerFactory.getLogger(ContractLoader.class);
@@ -25,7 +25,7 @@ class ContractLoader {
 
     public SmartContract invoke(Subscriber<SmartContract.BidAcceptedEventResponse> subscriber) {
         SmartContract contract = SmartContract.load(
-                "0xf29ea22795b80856b45E09133F84B99827f20368", web3j, credentials, ManagedTransaction.GAS_PRICE, Contract.GAS_LIMIT);
+                CONTRACT_ADDRESS, web3j, credentials, ManagedTransaction.GAS_PRICE, Contract.GAS_LIMIT);
         try {
             log.info("Contract is valid: " + contract.isValid());
         } catch (IOException e) {

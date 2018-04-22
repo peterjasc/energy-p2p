@@ -8,19 +8,19 @@ contract SmartContract {
     function SmartContract() public {
     }
 
-    function addContract(uint _cId, address buyer, uint _quantity, uint _unitPrice)
+    // msg.value == price
+    function addContract(uint _cId, address buyer, uint _quantity)
     payable public returns (bool success) {
 
         address myAddress = this;
 
-        uint amount = _quantity*_unitPrice;
-        if (myAddress.balance >= amount) {
-            buyer.transfer(amount);
+        if (myAddress.balance >= msg.value) {
+            buyer.transfer(msg.value);
         } else {
             return false;
         }
 
-        emit BidAccepted(_cId, buyer, _quantity, _unitPrice, block.timestamp);
+        emit BidAccepted(_cId, buyer, _quantity, msg.value, block.timestamp);
         return true;
     }
 }

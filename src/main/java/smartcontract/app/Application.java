@@ -35,26 +35,24 @@ public class Application {
         log.info("Credentials loaded");
 
 //        log.info("Deploying smart contract (remember to start mining!!!)");
-//        SmartContract contractS = SmartContract.deploy(
+//        SmartContract contract = SmartContract.deploy(
 //                web3j, credentials,
 //                ManagedTransaction.GAS_PRICE, Contract.GAS_LIMIT).send();
 //        System.exit(0);
 
         SmartContract contract = SmartContract.load(
-                "0xf29ea22795b80856b45E09133F84B99827f20368", web3j, credentials, ManagedTransaction.GAS_PRICE, Contract.GAS_LIMIT);
+                "0xB08a4Aa7904d50155d10B8cE447Cc4b3fae212A4", web3j, credentials, ManagedTransaction.GAS_PRICE, Contract.GAS_LIMIT);
         log.info("Contract is valid: " + contract.isValid());
         String contractAddress = contract.getContractAddress();
         log.info("Smart contract deployed to address " + contractAddress);
 
 
-//        event BidAccepted(uint indexed contractId, address indexed bidder, uint quantity, uint price, uint time);
-
+//        event BidAccepted(uint indexed contractId, address indexed bidder, uint quantity, uint price, uint indexed time);
         log.info("Value stored in remote smart contract: " + contract.addContract(
                 new BigInteger("1", 10),
                 "0x521892450a22dc762198f6ce597cfc6d85f673a3",
                 new BigInteger("10", 10),
-                new BigInteger("10", 10),
-                new BigInteger("1000", 10)
+                new BigInteger("10", 10)
         ).send());
 
         Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new BuyersSubscriber();

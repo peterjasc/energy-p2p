@@ -146,8 +146,7 @@ public class BuyerAgent extends Agent {
                                     new BigInteger("1", 10),
                                     "0x521892450a22dc762198f6ce597cfc6d85f673a3",
                                     new BigInteger("10", 10),
-                                    new BigInteger("10", 10),
-                                    new BigInteger("1000", 10)
+                                    new BigInteger("10", 10)
                             ).send());
                         } catch (Exception e) {
                             e.printStackTrace();
