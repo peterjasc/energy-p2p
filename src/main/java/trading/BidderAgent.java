@@ -37,11 +37,11 @@ public class BidderAgent extends Agent {
         if (args.length == 1) {
             offer = (String) args[0];
 
-            loadContractFromChain();
+//            loadContractFromChain();
 
             if (offer.matches("^(\\d|.)+$")) {
                 BigDecimal initialOffer = new BigDecimal(offer);
-                System.out.println(getAID().getName() + " has issued a new offer, at $" + offer + ".\n");
+                log.info(getAID().getName() + " has issued a new offer, at $" + offer + ".\n");
 
                 receivedOffers = new ArrayList<>();
                 receivedOffers.add(initialOffer);
@@ -51,26 +51,26 @@ public class BidderAgent extends Agent {
                 serviceDescription.setName(getLocalName());
                 helper.register(this, serviceDescription);
             } else {
-                System.out.println("Payment must be a positive decimal number.");
-                System.out.println("Terminating: " + this.getAID().getName());
+                log.info("Payment must be a positive decimal number.");
+                log.info("Terminating: " + this.getAID().getName());
                 doDelete();
             }
         } else {
-            System.out.println("One argument required. Please provide a floating point number.");
-            System.out.println("Terminating: " + this.getAID().getName());
+            log.info("One argument required. Please provide a floating point number.");
+            log.info("Terminating: " + this.getAID().getName());
             doDelete();
         }
 
         addBehaviour(new CustomContractNetInitiator(this, null));
     }
 
-    private void loadContractFromChain() {
+    private SmartContract loadContractFromChain() {
         ChainConnector chainConnector = new ChainConnector().invoke("password",
                 "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
         Web3j web3j = chainConnector.getWeb3j();
         Credentials credentials = chainConnector.getCredentials();
         Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new BiddersSubscriber();
-        SmartContract contract = new ContractLoader(web3j, credentials).invoke(subscriber);
+         return new ContractLoader(web3j, credentials).invoke(subscriber);
     }
 
     private class CustomContractNetInitiator extends ContractNetInitiator {
@@ -88,15 +88,14 @@ public class BidderAgent extends Agent {
 
             AID[] agents = helper.searchDF(getAgent(), "Buyer");
 
-            System.out.println("The Directory Facilitator found the following agents labeled as \"Buyer\": ");
+            log.info("The Directory Facilitator found the following agents labeled as \"Buyer\": ");
             for (AID agent : agents) {
-                System.out.println(agent.getName());
+                log.info(agent.getName());
                 init.addReceiver(new AID(agent.getLocalName(), AID.ISLOCALNAME));
             }
-            System.out.println();
 
             if (agents.length == 0) {
-                System.out.println("No agents matching the type were found. Terminating: "
+                log.info("No agents matching the type were found. Terminating: "
                         + getAgent().getAID().getName());
                 helper.killAgent(getAgent());
             } else {
@@ -111,24 +110,24 @@ public class BidderAgent extends Agent {
         }
 
         protected void handlePropose(ACLMessage propose, Vector v) {
-            System.out.println(propose.getSender().getName() + " proposes $" + propose.getContent() + "\".");
+            log.info(propose.getSender().getName() + " proposes $" + propose.getContent() + "\".");
         }
 
         protected void handleRefuse(ACLMessage refuse) {
             globalResponses++;
-            System.out.println(refuse.getSender().getName() + " is not willing to bid any higher.");
+            log.info(refuse.getSender().getName() + " is not willing to bid any higher.");
             helper.removeReceiverAgent(refuse.getSender(), refuse);
         }
 
         protected void handleFailure(ACLMessage failure) {
             globalResponses++;
-            System.out.println(failure.getSender().getName() + " failed to reply.");
+            log.info(failure.getSender().getName() + " failed to reply.");
             helper.removeReceiverAgent(failure.getSender(), failure);
         }
 
         protected void handleInform(ACLMessage inform) {
             globalResponses++;
-            System.out.println("\n" + getAID().getName() + " has no stored power available.");
+            log.info("\n" + getAID().getName() + " has no stored power available.");
             for (Agent agent : helper.getRegisteredAgents()) {
                 helper.killAgent(agent);
             }
@@ -138,7 +137,7 @@ public class BidderAgent extends Agent {
             int agentsLeft = responses.size() - globalResponses;
             globalResponses = 0;
 
-            System.out.println("\n" + getAID().getName() + " got " + agentsLeft + " responses.");
+            log.info("\n" + getAID().getName() + " got " + agentsLeft + " responses.");
 
             BigDecimal bestProposal = new BigDecimal(offer);
             ACLMessage reply = new ACLMessage(ACLMessage.CFP);
@@ -168,8 +167,8 @@ public class BidderAgent extends Agent {
                     cfps.set(i, replies.get(i));
                 }
 
-                System.out.println(agentsLeft + " buyers are still bidding. Proceeding to the next round.");
-                System.out.println(getAID().getName()
+                log.info(agentsLeft + " buyers are still bidding. Proceeding to the next round.");
+                log.info(getAID().getName()
                         + " is issuing CFP's with a offer of $"
                         + receivedOffers.get(receivedOffers.size() - 1) + ".\n");
                 newIteration(cfps);
@@ -181,7 +180,7 @@ public class BidderAgent extends Agent {
                 }
                 acceptances.addElement(reply);
             } else {
-                System.out.println("No agent accepted the job.");
+                log.info("No agent accepted the job.");
             }
         }
 

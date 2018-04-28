@@ -44,7 +44,7 @@ public class BuyerAgent extends Agent {
                 allowablePercentageDivergenceFromInitialOffer = Integer.parseInt(percentageArg);
             }
 
-            loadContractFromChain();
+//            loadContractFromChain();
         }
 
         registerInteractionProtocolBehaviour();
@@ -84,7 +84,7 @@ public class BuyerAgent extends Agent {
                     try {
                         receivedOffer = new BigDecimal(cfp.getContent().substring(cfp.getContent().lastIndexOf("|") + 1));
                     } catch (Exception e) {
-                        System.out.println(getAID().getName() + " couldn't read the price.");
+                        log.info(getAID().getName() + " couldn't read the price.");
                     }
 
                     if (initialOffer.compareTo(BigDecimal.ZERO) == 0) {
@@ -139,20 +139,12 @@ public class BuyerAgent extends Agent {
                             agentName = accept.getContent().substring(0, accept.getContent().indexOf("|"));
                             payment = new BigDecimal(accept.getContent().substring(accept.getContent().lastIndexOf("|") + 1));
                         } catch (Exception e) {
-                        }
-
-                        try {
-                            log.info("Value stored in remote smart contract: " + smartContract.addContract(
-                                    new BigInteger("1", 10),
-                                    "0x521892450a22dc762198f6ce597cfc6d85f673a3",
-                                    new BigInteger("10", 10),
-                                    new BigInteger("10", 10)
-                            ).send());
-                        } catch (Exception e) {
                             e.printStackTrace();
                         }
 
-                        System.out.println(getAID().getName() + " has accepted the offer from "
+//                        addContractToChain();
+
+                        log.info(getAID().getName() + " has accepted the offer from "
                                 + accept.getSender().getName() + ", and will receive $" + payment + " for completing it.");
                         ACLMessage inform = accept.createReply();
                         inform.setPerformative(ACLMessage.INFORM);
@@ -165,10 +157,23 @@ public class BuyerAgent extends Agent {
                 }
 
                 protected void handleRejectProposal(ACLMessage msg, ACLMessage propose, ACLMessage reject) {
-                    System.out.println(reject.getSender().getName() + " rejected offer " + getAID().getName()
+                    log.info(reject.getSender().getName() + " rejected offer " + getAID().getName()
                             + " for unexpected reasons");
                 }
             };
+        }
+
+        private void addContractToChain() {
+            try {
+                log.info("Value stored in remote smart contract: " + smartContract.addContract(
+                        new BigInteger("1", 10),
+                        "0x521892450a22dc762198f6ce597cfc6d85f673a3",
+                        new BigInteger("10", 10),
+                        new BigInteger("10", 10)
+                ).send());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 }

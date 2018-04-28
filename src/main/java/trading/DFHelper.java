@@ -8,6 +8,8 @@ import jade.domain.FIPAAgentManagement.SearchConstraints;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 
@@ -15,6 +17,7 @@ public final class DFHelper extends Agent {
 	private static final long serialVersionUID = 1L;
 	private int respondersRemaining = 0;
 
+	private static final Logger log = LoggerFactory.getLogger(DFHelper.class);
 	private static DFHelper instance = null;
 	private ArrayList<Agent> registeredAgents = new ArrayList<Agent>();
 
@@ -36,7 +39,7 @@ public final class DFHelper extends Agent {
 		try {
 			registeredAgents.add(agent);
 			DFService.register(agent, dfAgentDescription);
-			System.out.println(agent.getName() + " registered as: " + serviceDescription.getType() + ".");
+			log.info(agent.getName() + " registered as: " + serviceDescription.getType() + ".");
 		} catch (FIPAException e) {
 			e.printStackTrace();
 		}
@@ -72,13 +75,13 @@ public final class DFHelper extends Agent {
 	 */
 	public void removeReceiverAgent(AID agent, ACLMessage msg) {
 		respondersRemaining--;
-		System.out.println(agent.getName() + " was removed from receivers.");
+		log.info(agent.getName() + " was removed from receivers.");
 		msg.removeReceiver(agent);
 	}
 
 	public void killAgent(Agent agent) {
 		try {
-			System.out.println(agent.getAID().getName() + " left.");
+			log.info(agent.getAID().getName() + " left.");
 			DFService.deregister(agent);
 			agent.doDelete();
 		} catch (Exception e) {

@@ -2,6 +2,8 @@ import jade.core.*;
 import jade.core.Runtime;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import trading.BidderAgent;
 import trading.BuyerAgent;
 import trading.TradeAgentFactory;
@@ -15,6 +17,7 @@ public class Simulation implements Serializable {
     private ArrayList<Trader> agents;
     private transient ContainerController container;
 
+    private static final Logger log = LoggerFactory.getLogger(Simulation.class);
     private Simulation() { }
 
     public static void main(String[] args) throws StaleProxyException {
@@ -50,7 +53,7 @@ public class Simulation implements Serializable {
 
     public void startAll() throws StaleProxyException {
         for (Trader trader : agents) {
-            System.out.println("Starting up " + trader.getNickname());
+            log.info("Starting up " + trader.getNickname());
             trader.start();
         }
     }

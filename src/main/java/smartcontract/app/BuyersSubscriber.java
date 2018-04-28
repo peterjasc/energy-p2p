@@ -1,12 +1,15 @@
 package smartcontract.app;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Subscriber;
 import smartcontract.app.generated.SmartContract;
 
 public class BuyersSubscriber extends Subscriber<SmartContract.BidAcceptedEventResponse> {
+    private static final Logger log = LoggerFactory.getLogger(BuyersSubscriber.class);
     @Override
     public void onCompleted() {
-        System.out.println("onCompleted");
+        log.info("onCompleted");
     }
 
     @Override
@@ -16,13 +19,12 @@ public class BuyersSubscriber extends Subscriber<SmartContract.BidAcceptedEventR
 
     @Override
     public void onNext(SmartContract.BidAcceptedEventResponse o) {
-        System.out.println();
-        System.out.println("contractId " + o.contractId);
-        System.out.println("bidder " + o.bidder);
-        System.out.println("price " + o.price);
-        System.out.println("quantity " + o.quantity);
-        System.out.println("time " + o.time);
-        System.out.println("log " + o.log);
+        log.info("\ncontractId " + o.contractId);
+        log.info("bidder " + o.bidder);
+        log.info("price " + o.price);
+        log.info("quantity " + o.quantity);
+        log.info("time " + o.time);
+        log.info("log " + o.log);
 
 
     }
