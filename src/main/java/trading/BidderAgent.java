@@ -8,12 +8,8 @@ import jade.lang.acl.ACLMessage;
 import jade.proto.ContractNetInitiator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.DefaultBlockParameterName;
 import rx.Subscriber;
 import smartcontract.app.BiddersSubscriber;
-import smartcontract.app.BuyersSubscriber;
 import smartcontract.app.generated.SmartContract;
 
 import java.math.BigDecimal;
@@ -29,19 +25,24 @@ public class BidderAgent extends Agent {
     private ArrayList<BigDecimal> receivedOffers;
     private DFHelper helper;
     private String offer = null;
+    private String quantity = null;
 
     protected void setup() {
         helper = DFHelper.getInstance();
 
         Object[] args = getArguments();
-        if (args.length == 1) {
+        if (args.length == 2) {
             offer = (String) args[0];
+            quantity = (String) args[1];
 
-//            loadContractFromChain();
+//            Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new BiddersSubscriber();
+//            ContractLoader contractLoader = new ContractLoader("password",
+//                    "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
+//            SmartContract smartContract = contractLoader.loadContract(subscriber);
 
             if (offer.matches("^(\\d|.)+$")) {
                 BigDecimal initialOffer = new BigDecimal(offer);
-                log.info(getAID().getName() + " has issued a new offer, at $" + offer + ".\n");
+                log.info(getAID().getName() + " has issued a new offer, at $" + offer + " for " + quantity + ".\n");
 
                 receivedOffers = new ArrayList<>();
                 receivedOffers.add(initialOffer);
@@ -64,14 +65,6 @@ public class BidderAgent extends Agent {
         addBehaviour(new CustomContractNetInitiator(this, null));
     }
 
-    private SmartContract loadContractFromChain() {
-        ChainConnector chainConnector = new ChainConnector().invoke("password",
-                "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
-        Web3j web3j = chainConnector.getWeb3j();
-        Credentials credentials = chainConnector.getCredentials();
-        Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new BiddersSubscriber();
-         return new ContractLoader(web3j, credentials).invoke(subscriber);
-    }
 
     private class CustomContractNetInitiator extends ContractNetInitiator {
         private static final long serialVersionUID = 1L;

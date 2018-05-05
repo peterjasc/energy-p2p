@@ -10,8 +10,6 @@ import jade.proto.SSIteratedContractNetResponder;
 import jade.proto.SSResponderDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
 import rx.Subscriber;
 import smartcontract.app.BuyersSubscriber;
 import smartcontract.app.generated.SmartContract;
@@ -28,8 +26,6 @@ public class BuyerAgent extends Agent {
     private BigDecimal initialOffer = BigDecimal.ZERO;
     private int allowablePercentageDivergenceFromInitialOffer = 90;
 
-    private SmartContract smartContract;
-
     protected void setup() {
         helper = DFHelper.getInstance();
         ServiceDescription serviceDescription = new ServiceDescription();
@@ -44,20 +40,9 @@ public class BuyerAgent extends Agent {
                 allowablePercentageDivergenceFromInitialOffer = Integer.parseInt(percentageArg);
             }
 
-//            loadContractFromChain();
         }
 
         registerInteractionProtocolBehaviour();
-    }
-
-    private void loadContractFromChain() {
-        ChainConnector chainConnector = new ChainConnector().invoke("password",
-                "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
-        Web3j web3j = chainConnector.getWeb3j();
-        Credentials credentials = chainConnector.getCredentials();
-
-        Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new BuyersSubscriber();
-        smartContract = new ContractLoader(web3j, credentials).invoke(subscriber);
     }
 
     private void registerInteractionProtocolBehaviour() {
@@ -142,7 +127,13 @@ public class BuyerAgent extends Agent {
                             e.printStackTrace();
                         }
 
-//                        addContractToChain();
+//                        Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new BuyersSubscriber();
+//                        ContractLoader contractLoader = new ContractLoader("password",
+//                                "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
+//                        SmartContract smartContract = contractLoader.loadContract(subscriber);
+//
+//                        addContractToChain(smartContract,"10","10",
+//                                "0x521892450a22dc762198f6ce597cfc6d85f673a3", "10", "10");
 
                         log.info(getAID().getName() + " has accepted the offer from "
                                 + accept.getSender().getName() + ", and will receive $" + payment + " for completing it.");
@@ -157,20 +148,22 @@ public class BuyerAgent extends Agent {
                 }
 
                 protected void handleRejectProposal(ACLMessage msg, ACLMessage propose, ACLMessage reject) {
-                    log.info(reject.getSender().getName() + " rejected offer " + getAID().getName()
+                    log.info(reject.getSender().getName() + " rejected offer from " + getAID().getName()
                             + " for unexpected reasons");
                 }
             };
         }
 
-        private void addContractToChain() {
+        private void addContractToChain(SmartContract smartContract,
+                                        String roundId, String contractId,
+                                        String bidderAddress, String quantity, String price) {
             try {
                 log.info("Value stored in remote smart contract: " + smartContract.addContract(
-                        new BigInteger("1", 10),
-                        new BigInteger("1", 10),
-                        "0x521892450a22dc762198f6ce597cfc6d85f673a3",
-                        new BigInteger("10", 10),
-                        new BigInteger("10", 10)
+                        new BigInteger(roundId, 10),
+                        new BigInteger(contractId, 10),
+                        bidderAddress,
+                        new BigInteger(quantity, 10),
+                        new BigInteger(price, 10)
                 ).send());
             } catch (Exception e) {
                 e.printStackTrace();
