@@ -19,7 +19,9 @@ public class BuyersSubscriber extends Subscriber<SmartContract.BidAcceptedEventR
 
     @Override
     public void onNext(SmartContract.BidAcceptedEventResponse o) {
-        log.info("\ncontractId " + o.contractId);
+
+        log.info("\nroundId " + o.roundId);
+        log.info("contractId " + o.contractId);
         log.info("bidder " + o.bidder);
         log.info("price " + o.price);
         log.info("quantity " + o.quantity);

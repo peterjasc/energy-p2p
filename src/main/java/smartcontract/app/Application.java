@@ -46,9 +46,9 @@ public class Application {
         String contractAddress = contract.getContractAddress();
         log.info("Smart contract deployed to address " + contractAddress);
 
-
-//        event BidAccepted(uint indexed contractId, address indexed bidder, uint quantity, uint price, uint indexed time);
+//     event BidAccepted(uint indexed roundId, uint indexed contractId, address indexed bidder, uint quantity, uint price, uint time);
         log.info("Value stored in remote smart contract: " + contract.addContract(
+                new BigInteger("1", 10),
                 new BigInteger("1", 10),
                 "0x521892450a22dc762198f6ce597cfc6d85f673a3",
                 new BigInteger("10", 10),

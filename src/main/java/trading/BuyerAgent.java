@@ -167,6 +167,7 @@ public class BuyerAgent extends Agent {
             try {
                 log.info("Value stored in remote smart contract: " + smartContract.addContract(
                         new BigInteger("1", 10),
+                        new BigInteger("1", 10),
                         "0x521892450a22dc762198f6ce597cfc6d85f673a3",
                         new BigInteger("10", 10),
                         new BigInteger("10", 10)
