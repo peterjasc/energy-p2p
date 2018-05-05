@@ -18,7 +18,7 @@ import java.io.IOException;
 class ContractLoader {
     public static final String CONTRACT_ADDRESS = "0xB08a4Aa7904d50155d10B8cE447Cc4b3fae212A4";
     private Web3j web3j;
-    private Credentials credentials = null;
+    private Credentials credentials;
     private static final Logger log = LoggerFactory.getLogger(ContractLoader.class);
 
     public Web3j getWeb3j() {
@@ -39,7 +39,6 @@ class ContractLoader {
             e.printStackTrace();
         }
 
-        credentials = null;
         try {
             credentials = WalletUtils.loadCredentials(password, walletFilePath);
             log.info("Credentials loaded");
@@ -48,7 +47,7 @@ class ContractLoader {
         }
     }
 
-    public SmartContract loadContract(Subscriber<SmartContract.BidAcceptedEventResponse> subscriber) {
+    public SmartContract loadContractWithSubscriber(Subscriber<SmartContract.BidAcceptedEventResponse> subscriber) {
         SmartContract contract = SmartContract.load(
                 CONTRACT_ADDRESS, web3j, credentials, ManagedTransaction.GAS_PRICE, Contract.GAS_LIMIT);
         try {

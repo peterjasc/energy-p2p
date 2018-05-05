@@ -6,6 +6,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPANames;
 import jade.lang.acl.ACLMessage;
 import jade.proto.ContractNetInitiator;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Subscriber;
@@ -13,6 +14,7 @@ import smartcontract.app.BiddersSubscriber;
 import smartcontract.app.generated.SmartContract;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
@@ -38,10 +40,11 @@ public class BidderAgent extends Agent {
 //            Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new BiddersSubscriber();
 //            ContractLoader contractLoader = new ContractLoader("password",
 //                    "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
-//            SmartContract smartContract = contractLoader.loadContract(subscriber);
+//            SmartContract smartContract = contractLoader.loadContractWithSubscriber(subscriber);
 
-            if (offer.matches("^(\\d|.)+$")) {
-                BigDecimal initialOffer = new BigDecimal(offer);
+            if (NumberUtils.isCreatable(offer) && NumberUtils.isDigits(quantity)) {
+                BigDecimal initialOffer = NumberUtils.createBigDecimal(offer);
+
                 log.info(getAID().getName() + " has issued a new offer, at $" + offer + " for " + quantity + ".\n");
 
                 receivedOffers = new ArrayList<>();
@@ -52,12 +55,12 @@ public class BidderAgent extends Agent {
                 serviceDescription.setName(getLocalName());
                 helper.register(this, serviceDescription);
             } else {
-                log.info("Payment must be a positive decimal number.");
+                log.info("Payment must be a positive decimal number and quantity positive integer");
                 log.info("Terminating: " + this.getAID().getName());
                 doDelete();
             }
         } else {
-            log.info("One argument required. Please provide a floating point number.");
+            log.info("Two arguments required.");
             log.info("Terminating: " + this.getAID().getName());
             doDelete();
         }
@@ -94,7 +97,7 @@ public class BidderAgent extends Agent {
             } else {
                 init.setProtocol(FIPANames.InteractionProtocol.FIPA_ITERATED_CONTRACT_NET);
                 init.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
-                init.setContent(getLocalName() + "|" + offer);
+                init.setContent(getLocalName() + "|" + offer + "|" + quantity);
 
                 messages.addElement(init);
             }
