@@ -8,23 +8,22 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.proto.SSIteratedContractNetResponder;
 import jade.proto.SSResponderDispatcher;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Subscriber;
-import smartcontract.app.BuyersSubscriber;
 import smartcontract.app.generated.SmartContract;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Random;
 
 public class BuyerAgent extends Agent {
     private static final long serialVersionUID = 1L;
     private static final Logger log = LoggerFactory.getLogger(BuyerAgent.class);
 
     private DFHelper helper;
-    private BigDecimal initialOffer = BigDecimal.ZERO;
-    private int allowablePercentageDivergenceFromInitialOffer = 90;
+    private BigDecimal lowerBound = BigDecimal.valueOf(90);
+    private BigInteger quantityToBuy = BigInteger.valueOf(10);
+
 
     protected void setup() {
         helper = DFHelper.getInstance();
@@ -34,29 +33,38 @@ public class BuyerAgent extends Agent {
         helper.register(this, serviceDescription);
 
         Object[] args = getArguments();
-        if (args != null && args.length > 0) {
-            String percentageArg = (String) args[0];
-            if (percentageArg.matches("^\\d+$")) {
-                allowablePercentageDivergenceFromInitialOffer = Integer.parseInt(percentageArg);
-            }
+        if (args != null && args.length == 2) {
+            String percentage = (String) args[0];
+            String quantity = (String) args[1];
 
+            if (NumberUtils.isCreatable(percentage) && NumberUtils.isDigits(quantity)) {
+                lowerBound = NumberUtils.createBigDecimal(percentage);
+                quantityToBuy = NumberUtils.createBigInteger(quantity);
+            } else {
+                log.info("Percentage must be a positive decimal number and quantity positive integer");
+                log.info("Terminating: " + this.getAID().getName());
+                doDelete();
+            }
+        } else {
+            log.info("Two arguments required.");
+            log.info("Terminating: " + this.getAID().getName());
+            doDelete();
         }
 
-        registerInteractionProtocolBehaviour();
+        MessageTemplate template = getInteractionProtocolBehaviourTemplate();
+        addBehaviour(new CustomContractNetResponderDispatcher(this, template));
     }
 
-    private void registerInteractionProtocolBehaviour() {
+    private MessageTemplate getInteractionProtocolBehaviourTemplate() {
         final String IP = FIPANames.InteractionProtocol.FIPA_ITERATED_CONTRACT_NET;
-        MessageTemplate template = MessageTemplate.and(MessageTemplate.MatchProtocol(IP),
+        return MessageTemplate.and(MessageTemplate.MatchProtocol(IP),
                 MessageTemplate.MatchPerformative(ACLMessage.CFP));
-
-        addBehaviour(new CustomContractNetResponder(this, template));
     }
 
-    private class CustomContractNetResponder extends SSResponderDispatcher {
+    private class CustomContractNetResponderDispatcher extends SSResponderDispatcher {
         private static final long serialVersionUID = 1L;
 
-        private CustomContractNetResponder(Agent agent, MessageTemplate template) {
+        private CustomContractNetResponderDispatcher(Agent agent, MessageTemplate template) {
             super(agent, template);
         }
 
@@ -65,50 +73,24 @@ public class BuyerAgent extends Agent {
                 private static final long serialVersionUID = 1L;
 
                 protected ACLMessage handleCfp(ACLMessage cfp) {
-                    BigDecimal receivedOffer = BigDecimal.ZERO;
+                    BigDecimal receivedOfferPrice = BigDecimal.ZERO;
+                    BigInteger receivedOfferQuantity = BigInteger.ZERO;
                     try {
-                        receivedOffer = new BigDecimal(cfp.getContent().substring(cfp.getContent().lastIndexOf("|") + 1));
+                        String receivedContent = cfp.getContent();
+                        receivedOfferPrice = getPrice(receivedContent);
+                        receivedOfferQuantity = getQuantity(receivedContent);
                     } catch (Exception e) {
-                        log.info(getAID().getName() + " couldn't read the price.");
-                    }
-
-                    if (initialOffer.compareTo(BigDecimal.ZERO) == 0) {
-                        initialOffer = receivedOffer;
-                    }
-
-                    Random generate = new Random();
-
-                    int upperBound;
-                    int length = String.valueOf(receivedOffer).length();
-
-                    if (length == 1) {
-                        upperBound = 1;
-                    } else if (length == 2) {
-                        upperBound = 5;
-                    } else if (length == 3) {
-                        upperBound = 50;
-                    } else {
-                        upperBound = 200;
-                    }
-
-                    BigDecimal lowerBound = initialOffer
-                            .multiply(new BigDecimal(allowablePercentageDivergenceFromInitialOffer))
-                            .divide(new BigDecimal(100), BigDecimal.ROUND_CEILING);
-                    BigDecimal lowerOffer = lowerBound;
-
-                    while (lowerOffer.compareTo(lowerBound) <= 0) {
-                        BigDecimal randomNumber = new BigDecimal(generate.nextInt(upperBound) + 1);
-                        lowerOffer = receivedOffer.subtract(randomNumber);
+                        log.error(getAID().getName() + " couldn't read the price and/or quantity.");
                     }
 
                     ACLMessage response = cfp.createReply();
 
-                    if (lowerOffer.compareTo(lowerBound) > 0) {
+                    if (receivedOfferPrice.compareTo(lowerBound) <= 0) {
                         response.setPerformative(ACLMessage.PROPOSE);
                         if (helper.getRespondersRemaining() == 1) {
-                            response.setContent(String.valueOf(receivedOffer));
+                            response.setContent(String.valueOf(receivedOfferPrice));
                         } else {
-                            response.setContent(String.valueOf(lowerOffer));
+                            response.setContent(String.valueOf(lowerBound));
                         }
                     } else {
                         response.setPerformative(ACLMessage.REFUSE);
@@ -120,9 +102,12 @@ public class BuyerAgent extends Agent {
                     if (msg != null) {
                         String agentName = null;
                         BigDecimal payment = BigDecimal.ZERO;
+                        BigInteger quantity = BigInteger.ZERO;
                         try {
-                            agentName = accept.getContent().substring(0, accept.getContent().indexOf("|"));
-                            payment = new BigDecimal(accept.getContent().substring(accept.getContent().lastIndexOf("|") + 1));
+                            String content = accept.getContent();
+                            agentName = getAgentName(content);
+                            payment = getPrice(content);
+                            quantity = getQuantity(content);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -136,10 +121,11 @@ public class BuyerAgent extends Agent {
 //                                "0x521892450a22dc762198f6ce597cfc6d85f673a3", "10", "10");
 
                         log.info(getAID().getName() + " has accepted the offer from "
-                                + accept.getSender().getName() + ", and will receive $" + payment + " for completing it.");
+                                + accept.getSender().getName() + ", and will send $" + payment + " for " + quantity + " Wh.");
                         ACLMessage inform = accept.createReply();
                         inform.setPerformative(ACLMessage.INFORM);
                         return inform;
+
                     } else {
                         ACLMessage failure = accept.createReply();
                         failure.setPerformative(ACLMessage.FAILURE);
@@ -152,6 +138,22 @@ public class BuyerAgent extends Agent {
                             + " for unexpected reasons");
                 }
             };
+        }
+
+        private String getAgentName(String content) {
+            return content.substring(0, content.indexOf("|"));
+        }
+
+        private BigInteger getQuantity(String receivedContent) {
+            return new BigInteger(
+                    receivedContent.substring(receivedContent.lastIndexOf("|") + 1,
+                            receivedContent.length()));
+        }
+
+        private BigDecimal getPrice(String content) {
+            return new BigDecimal(
+                    content.substring(content.indexOf("|") + 1,
+                            content.lastIndexOf("|") + 1));
         }
 
         private void addContractToChain(SmartContract smartContract,
