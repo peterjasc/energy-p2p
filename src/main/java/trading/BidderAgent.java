@@ -26,7 +26,7 @@ public class BidderAgent extends Agent {
         helper = DFHelper.getInstance();
 
         Object[] args = getArguments();
-        if (args.length == 2) {
+        if (args != null && args.length == 2) {
 
 //            Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new BiddersSubscriber();
 //            ContractLoader contractLoader = new ContractLoader("password",
@@ -48,13 +48,13 @@ public class BidderAgent extends Agent {
                 serviceDescription.setName(getLocalName());
                 helper.register(this, serviceDescription);
             } else {
-                log.info("Payment must be a positive decimal number and quantity positive integer");
-                log.info("Terminating: " + this.getAID().getName());
+                log.error("Payment must be a positive decimal number and quantity positive integer");
+                log.error("Terminating: " + this.getAID().getName());
                 doDelete();
             }
         } else {
-            log.info("Two arguments required.");
-            log.info("Terminating: " + this.getAID().getName());
+            log.error("Two arguments required.");
+            log.error("Terminating: " + this.getAID().getName());
             doDelete();
         }
 
@@ -118,7 +118,7 @@ public class BidderAgent extends Agent {
 
         protected void handleInform(ACLMessage inform) {
             globalResponses++;
-            log.info("\n" + getAID().getName() + " has no stored power available.");
+            log.info(getAID().getName() + " has no stored power available.");
             helper.killAgent(myAgent);
         }
 
@@ -126,7 +126,7 @@ public class BidderAgent extends Agent {
             int agentsLeft = responses.size() - globalResponses;
             globalResponses = 0;
 
-            log.info("\n" + getAID().getName() + " got " + agentsLeft + " responses.");
+            log.info(getAID().getName() + " got " + agentsLeft + " responses.");
 
             Bid oldBid = bidsForRounds.get(ROUND_ID);
             BigDecimal bestPriceOffer = oldBid.getPrice();
@@ -144,7 +144,7 @@ public class BidderAgent extends Agent {
                     reply = msg.createReply();
                     reply.setPerformative(ACLMessage.CFP);
                     replies.add(reply);
-                    if (proposal.compareTo(bestPriceOffer) > 0) {
+                    if (proposal.compareTo(bestPriceOffer) < 0) {
                         bestPriceOffer = proposal;
                     }
                     cfps.addElement(reply);
@@ -164,7 +164,7 @@ public class BidderAgent extends Agent {
 
                 log.info(agentsLeft + " buyers are still bidding in the current round. Moving on to the next iteration.");
                 log.info(getAID().getName()
-                        + " is issuing CFP's with a price of $"
+                        + " is issuing CFP's of "
                         + bidsForRounds.get(ROUND_ID) + ".\n");
                 newIteration(cfps);
             } else if (agentsLeft == 1) {
@@ -172,7 +172,7 @@ public class BidderAgent extends Agent {
 
                 if (bestPriceOffer.compareTo(bidsForRounds.get(ROUND_ID).getPrice()) >= 0) {
                     bidsForRounds.put(ROUND_ID, newBid);
-                    reply.setContent(getLocalName() + "|" + bestPriceOffer);
+                    reply.setContent(getLocalName() + "|" + bestPriceOffer + "|" + oldBid.getQuantity());
                     reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
                 }
 

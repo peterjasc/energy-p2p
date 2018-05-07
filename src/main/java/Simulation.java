@@ -46,7 +46,7 @@ public class Simulation implements Serializable {
         agents.add(TradeAgentFactory.createTradeAgent("buyer2",buyerAgent2, containerController));
 
         BidderAgent bidderAgent = new BidderAgent();
-        agents.add(TradeAgentFactory.createTradeAgent("seller1",bidderAgent, containerController));
+        agents.add(TradeAgentFactory.createTradeAgent("bidder1",bidderAgent, containerController));
 
         return agents;
     }

@@ -16,18 +16,21 @@ public class TradeAgentFactory {
 
         if (agent instanceof BuyerAgent) {
             classForAgentToBeCreated = BuyerAgent.class;
+            if (agent.getArguments() == null) {
+                arguments = new Object[]{"90","10"};
+            } else {
+                arguments = agent.getArguments();
+            }
         } else if (agent instanceof BidderAgent) {
             classForAgentToBeCreated = BidderAgent.class;
             if (agent.getArguments() == null) {
-                arguments = new Object[]{"300"};
+                arguments = new Object[]{"300","150"};
             } else {
                 arguments = agent.getArguments();
             }
         }
 
         trader.setTradeAgent(agent);
-
-
 
         createdAgentController = containerController
                 .createNewAgent(nickname, classForAgentToBeCreated.getName(),arguments);

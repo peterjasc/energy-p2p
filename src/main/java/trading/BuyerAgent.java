@@ -15,14 +15,16 @@ import smartcontract.app.generated.SmartContract;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Random;
 
 public class BuyerAgent extends Agent {
     private static final long serialVersionUID = 1L;
     private static final Logger log = LoggerFactory.getLogger(BuyerAgent.class);
 
     private DFHelper helper;
-    private BigDecimal lowerBound = BigDecimal.valueOf(90);
-    private BigInteger quantityToBuy = BigInteger.valueOf(10);
+    private Integer allowablePercentageDivergenceFromInitialOffer = 90;
+    private BigDecimal lowestPriceToQuantityRatio = BigDecimal.valueOf(0.5);
+    private BigInteger quantityToBuy = BigInteger.ZERO;
 
 
     protected void setup() {
@@ -37,17 +39,17 @@ public class BuyerAgent extends Agent {
             String percentage = (String) args[0];
             String quantity = (String) args[1];
 
-            if (NumberUtils.isCreatable(percentage) && NumberUtils.isDigits(quantity)) {
-                lowerBound = NumberUtils.createBigDecimal(percentage);
+            if (NumberUtils.isDigits(percentage) && NumberUtils.isDigits(quantity)) {
+                allowablePercentageDivergenceFromInitialOffer = NumberUtils.createInteger(percentage);
                 quantityToBuy = NumberUtils.createBigInteger(quantity);
             } else {
-                log.info("Percentage must be a positive decimal number and quantity positive integer");
-                log.info("Terminating: " + this.getAID().getName());
+                log.error("Percentage must be a positive decimal number and quantity positive integer");
+                log.error("Terminating: " + this.getAID().getName());
                 doDelete();
             }
         } else {
-            log.info("Two arguments required.");
-            log.info("Terminating: " + this.getAID().getName());
+            log.error("Two arguments required.");
+            log.error("Terminating: " + this.getAID().getName());
             doDelete();
         }
 
@@ -77,24 +79,38 @@ public class BuyerAgent extends Agent {
                     BigInteger receivedOfferQuantity = BigInteger.ZERO;
                     try {
                         String receivedContent = cfp.getContent();
-                        receivedOfferPrice = getPrice(receivedContent);
-                        receivedOfferQuantity = getQuantity(receivedContent);
+                        receivedOfferPrice = getPriceFromContent(receivedContent);
+                        receivedOfferQuantity = getQuantityFromContent(receivedContent);
                     } catch (Exception e) {
                         log.error(getAID().getName() + " couldn't read the price and/or quantity.");
                     }
 
+                    BigDecimal lowerBound = receivedOfferPrice
+                            .multiply(new BigDecimal(allowablePercentageDivergenceFromInitialOffer))
+                            .divide(new BigDecimal(100), BigDecimal.ROUND_CEILING);
+                    BigDecimal buyersLowestPriceForOfferQuantity = lowestPriceToQuantityRatio
+                            .multiply(new BigDecimal(receivedOfferQuantity));
+
                     ACLMessage response = cfp.createReply();
 
-                    if (receivedOfferPrice.compareTo(lowerBound) <= 0) {
+                    if (buyersLowestPriceForOfferQuantity.compareTo(receivedOfferPrice) < 0
+                            && helper.getRespondersRemaining() == 1) {
                         response.setPerformative(ACLMessage.PROPOSE);
-                        if (helper.getRespondersRemaining() == 1) {
-                            response.setContent(String.valueOf(receivedOfferPrice));
-                        } else {
-                            response.setContent(String.valueOf(lowerBound));
-                        }
+                        response.setContent(String.valueOf(receivedOfferPrice));
+
+                    } else if (buyersLowestPriceForOfferQuantity.compareTo(lowerBound) < 0
+                            && helper.getRespondersRemaining() > 1) {
+                        BigDecimal lowerOffer = generateLowerOfferInAccordanceWithConstraints(receivedOfferPrice, lowerBound);
+
+                        response.setPerformative(ACLMessage.PROPOSE);
+                        response.setContent(String.valueOf(lowerOffer));
+
                     } else {
+                        log.info(getAID().getName() + " refused bid with price " + receivedOfferPrice
+                                + " and quantity " + receivedOfferQuantity);
                         response.setPerformative(ACLMessage.REFUSE);
                     }
+
                     return response;
                 }
 
@@ -105,9 +121,9 @@ public class BuyerAgent extends Agent {
                         BigInteger quantity = BigInteger.ZERO;
                         try {
                             String content = accept.getContent();
-                            agentName = getAgentName(content);
-                            payment = getPrice(content);
-                            quantity = getQuantity(content);
+                            agentName = getAgentNameFromContent(content);
+                            payment = getPriceFromContent(content);
+                            quantity = getQuantityFromContent(content);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -140,20 +156,45 @@ public class BuyerAgent extends Agent {
             };
         }
 
-        private String getAgentName(String content) {
+        private BigDecimal generateLowerOfferInAccordanceWithConstraints(BigDecimal receivedOfferPrice,
+                                                                         BigDecimal lowerBound) {
+            BigDecimal lowerOffer = lowerBound;
+            Random generate = new Random();
+
+            int upperBound;
+            int scale = String.valueOf(receivedOfferPrice).length();
+
+            if (scale == 1) {
+                upperBound = 1;
+            } else if (scale == 2) {
+                upperBound = 5;
+            } else if (scale == 3) {
+                upperBound = 50;
+            } else {
+                upperBound = 200;
+            }
+
+            while (lowerOffer.compareTo(lowerBound) <= 0) {
+                BigDecimal randomNumber = new BigDecimal(generate.nextInt(upperBound) + 1);
+                lowerOffer = receivedOfferPrice.subtract(randomNumber);
+            }
+            return lowerOffer;
+        }
+
+        private String getAgentNameFromContent(String content) {
             return content.substring(0, content.indexOf("|"));
         }
 
-        private BigInteger getQuantity(String receivedContent) {
+        private BigInteger getQuantityFromContent(String content) {
             return new BigInteger(
-                    receivedContent.substring(receivedContent.lastIndexOf("|") + 1,
-                            receivedContent.length()));
+                    content.substring(content.lastIndexOf("|") + 1,
+                            content.length()));
         }
 
-        private BigDecimal getPrice(String content) {
+        private BigDecimal getPriceFromContent(String content) {
             return new BigDecimal(
                     content.substring(content.indexOf("|") + 1,
-                            content.lastIndexOf("|") + 1));
+                            content.lastIndexOf("|")));
         }
 
         private void addContractToChain(SmartContract smartContract,
