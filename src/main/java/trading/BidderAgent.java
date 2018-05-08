@@ -155,19 +155,21 @@ public class BidderAgent extends Agent {
             if (agentsLeft > 1) {
                 bidsForRounds.put(ROUND_ID, newBid);
 
-                for (int replyToBuyerIndex = 0; replyToBuyerIndex < replies.size(); replyToBuyerIndex++) {
-                    replies
-                            .get(replyToBuyerIndex)
-                            .setContent(getLocalName() + "|" + bestPriceOffer + "|" + oldBid.getQuantity());
-                    cfps.set(replyToBuyerIndex, replies.get(replyToBuyerIndex));
+                boolean offersAreEqual = checkIfOffersAreEqual(responses);
+                if (!offersAreEqual) {
+                    setReplies(newBid, cfps, replies);
+
+                    log.info(agentsLeft + " buyers are still bidding in the current round. Moving on to the next iteration.");
+                    log.info(getAID().getName()
+                            + " is issuing CFP's of "
+                            + bidsForRounds.get(ROUND_ID) + ".\n");
+                    newIteration(cfps);
+                } else {
+                    setRepliesAcceptingJustOne(newBid, cfps, replies);
+                    newIteration(cfps);
                 }
 
-                log.info(agentsLeft + " buyers are still bidding in the current round. Moving on to the next iteration.");
-                log.info(getAID().getName()
-                        + " is issuing CFP's of "
-                        + bidsForRounds.get(ROUND_ID) + ".\n");
-                newIteration(cfps);
-            } else if (agentsLeft == 1) {
+            }  else if (agentsLeft == 1) {
                 reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
 
                 if (bestPriceOffer.compareTo(bidsForRounds.get(ROUND_ID).getPrice()) >= 0) {
@@ -179,6 +181,50 @@ public class BidderAgent extends Agent {
                 acceptances.addElement(reply);
             } else {
                 log.info("No agent accepted the job.");
+            }
+        }
+
+        private boolean checkIfOffersAreEqual(Vector responses) {
+            Enumeration<?> receivedResponses2 = responses.elements();
+
+            BigDecimal bestOffer = BigDecimal.ZERO;
+            if (receivedResponses2.hasMoreElements()) {
+                bestOffer = new BigDecimal(((ACLMessage) receivedResponses2.nextElement()).getContent());
+            }
+
+            boolean offersAreEqual = false;
+            while (receivedResponses2.hasMoreElements()) {
+                ACLMessage msg = (ACLMessage) receivedResponses2.nextElement();
+                if (msg.getPerformative() == ACLMessage.PROPOSE) {
+                    BigDecimal proposal = new BigDecimal(msg.getContent());
+                    offersAreEqual = proposal.compareTo(bestOffer) == 0;
+                }
+            }
+            return offersAreEqual;
+        }
+
+        private void setReplies(Bid newBid, Vector<ACLMessage> cfps, ArrayList<ACLMessage> replies) {
+            for (int replyToBuyerIndex = 0; replyToBuyerIndex < replies.size(); replyToBuyerIndex++) {
+                replies
+                        .get(replyToBuyerIndex)
+                        .setContent(getLocalName() + "|" + newBid.getPrice() + "|" + newBid.getQuantity());
+                cfps.set(replyToBuyerIndex, replies.get(replyToBuyerIndex));
+            }
+        }
+
+        private void setRepliesAcceptingJustOne(Bid newBid, Vector<ACLMessage> cfps, ArrayList<ACLMessage> replies) {
+            for (int replyToBuyerIndex = 0; replyToBuyerIndex < replies.size(); replyToBuyerIndex++) {
+                ACLMessage replyToBuyer = replies.get(replyToBuyerIndex);
+
+                if (replyToBuyerIndex == 0) {
+                    replyToBuyer
+                            .setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+                    replyToBuyer
+                            .setContent(getLocalName() + "|" + newBid.getPrice() + "|" + newBid.getQuantity());
+                } else {
+                    replyToBuyer.setPerformative(ACLMessage.REJECT_PROPOSAL);
+                }
+                cfps.set(replyToBuyerIndex, replyToBuyer);
             }
         }
 
