@@ -11,6 +11,8 @@ import jade.proto.SSResponderDispatcher;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.Subscriber;
+import smartcontract.app.BuyersSubscriber;
 import smartcontract.app.generated.SmartContract;
 
 import java.math.BigDecimal;
@@ -128,13 +130,13 @@ public class BuyerAgent extends Agent {
                             e.printStackTrace();
                         }
 
-//                        Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new BuyersSubscriber();
-//                        ContractLoader contractLoader = new ContractLoader("password",
-//                                "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
-//                        SmartContract smartContract = contractLoader.loadContractWithSubscriber(subscriber);
-//
-//                        addContractToChain(smartContract,"10","10",
-//                                "0x521892450a22dc762198f6ce597cfc6d85f673a3", "10", "10");
+                        Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new BuyersSubscriber();
+                        ContractLoader contractLoader = new ContractLoader("password",
+                                "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
+                        SmartContract smartContract = contractLoader.loadContractWithSubscriberFromEarliestToLatest(subscriber);
+
+                        addContractToChain(smartContract,"1","10",
+                                "0x521892450a22dc762198f6ce597cfc6d85f673a3", "10", "10");
 
                         log.info(getAID().getName() + " has accepted the offer from "
                                 + accept.getSender().getName() + ", and will send $" + payment + " for " + quantity + " Wh.");

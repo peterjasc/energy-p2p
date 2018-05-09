@@ -11,6 +11,7 @@ import org.web3j.tx.Contract;
 import org.web3j.tx.ManagedTransaction;
 import rx.Subscriber;
 import smartcontract.app.generated.SmartContract;
+import trading.ContractLoader;
 
 import java.math.BigInteger;
 
@@ -23,25 +24,15 @@ public class Application {
     }
 
     private void run() throws Exception {
-        Web3j web3j = Web3j.build(new HttpService(
-                "http://localhost:8110"));
-        log.info("Connected to Ethereum client version: "
-                + web3j.web3ClientVersion().send().getWeb3ClientVersion());
+        ContractLoader contractLoader = new ContractLoader("password",
+                "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
 
-        Credentials credentials =
-                WalletUtils.loadCredentials(
-                        "password",
-                        "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
-        log.info("Credentials loaded");
-
-//        log.info("Deploying smart contract (remember to start mining!!!)");
-//        SmartContract contract = SmartContract.deploy(
-//                web3j, credentials,
-//                ManagedTransaction.GAS_PRICE, Contract.GAS_LIMIT).send();
+        log.info("Deploying smart contract (remember to start mining!!!)");
+//        SmartContract contract = contractLoader.deployContract();
 //        System.exit(0);
 
-        SmartContract contract = SmartContract.load(
-                "0xB08a4Aa7904d50155d10B8cE447Cc4b3fae212A4", web3j, credentials, ManagedTransaction.GAS_PRICE, Contract.GAS_LIMIT);
+
+        SmartContract contract = contractLoader.loadContract();
         log.info("Contract is valid: " + contract.isValid());
         String contractAddress = contract.getContractAddress();
         log.info("Smart contract deployed to address " + contractAddress);
@@ -61,6 +52,11 @@ public class Application {
                 DefaultBlockParameterName.fromString(DefaultBlockParameterName.EARLIEST.getValue()),
                 DefaultBlockParameterName.fromString(DefaultBlockParameterName.LATEST.getValue())).subscribe(subscriber);
 
+
+//        ContractLoader contractLoader = new ContractLoader("password",
+//                "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
+//        SmartContract smartContract = contractLoader.loadContract();
+//        log.info("latestRoundId: " + contractLoader.getLatestRoundId(smartContract).toString());
 
     }
 

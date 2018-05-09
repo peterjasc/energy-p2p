@@ -9,6 +9,7 @@ import jade.proto.ContractNetInitiator;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import smartcontract.app.generated.SmartContract;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -17,8 +18,7 @@ import java.util.*;
 public class BidderAgent extends Agent {
     private static final long serialVersionUID = 1L;
     private static final Logger log = LoggerFactory.getLogger(BidderAgent.class);
-    public static final BigInteger ROUND_ID = new BigInteger("1", 10);
-
+    private static BigInteger roundId = BigInteger.ZERO;
     private HashMap<BigInteger, Bid> bidsForRounds = new HashMap<>();
     private DFHelper helper;
 
@@ -28,10 +28,7 @@ public class BidderAgent extends Agent {
         Object[] args = getArguments();
         if (args != null && args.length == 2) {
 
-//            Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new BiddersSubscriber();
-//            ContractLoader contractLoader = new ContractLoader("password",
-//                    "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
-//            SmartContract smartContract = contractLoader.loadContractWithSubscriber(subscriber);
+            roundId = findRoundIdFromLastBidEvent();
 
             String price = (String) args[0];
             String quantity = (String) args[1];
@@ -41,7 +38,7 @@ public class BidderAgent extends Agent {
 
                 log.info(getAID().getName() + " has issued a new offer" + bid + ".\n");
 
-                bidsForRounds.put(ROUND_ID, bid);
+                bidsForRounds.put(roundId, bid);
 
                 ServiceDescription serviceDescription = new ServiceDescription();
                 serviceDescription.setType("Bidder");
@@ -59,6 +56,13 @@ public class BidderAgent extends Agent {
         }
 
         addBehaviour(new CustomContractNetInitiator(this, null));
+    }
+
+    private BigInteger findRoundIdFromLastBidEvent() {
+        ContractLoader contractLoader = new ContractLoader("password",
+                "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
+        SmartContract smartContract = contractLoader.loadContract();
+        return contractLoader.getLatestRoundId(smartContract);
     }
 
 
@@ -91,7 +95,7 @@ public class BidderAgent extends Agent {
                 message.setProtocol(FIPANames.InteractionProtocol.FIPA_ITERATED_CONTRACT_NET);
                 message.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
 
-                Bid bid = bidsForRounds.get(ROUND_ID);
+                Bid bid = bidsForRounds.get(roundId);
                 message.setContent(getLocalName() + "|" + bid.getPrice() + "|" + bid.getQuantity());
 
                 messages.addElement(message);
@@ -128,7 +132,7 @@ public class BidderAgent extends Agent {
 
             log.info(getAID().getName() + " got " + agentsLeft + " responses.");
 
-            Bid oldBid = bidsForRounds.get(ROUND_ID);
+            Bid oldBid = bidsForRounds.get(roundId);
             BigDecimal bestPriceOffer = oldBid.getPrice();
 
             ACLMessage reply = new ACLMessage(ACLMessage.CFP);
@@ -153,7 +157,7 @@ public class BidderAgent extends Agent {
 
             Bid newBid = new Bid(bestPriceOffer, oldBid.getQuantity());
             if (agentsLeft > 1) {
-                bidsForRounds.put(ROUND_ID, newBid);
+                bidsForRounds.put(roundId, newBid);
 
                 boolean offersAreEqual = checkIfOffersAreEqual(responses);
                 if (!offersAreEqual) {
@@ -162,7 +166,7 @@ public class BidderAgent extends Agent {
                     log.info(agentsLeft + " buyers are still bidding in the current round. Moving on to the next iteration.");
                     log.info(getAID().getName()
                             + " is issuing CFP's of "
-                            + bidsForRounds.get(ROUND_ID) + ".\n");
+                            + bidsForRounds.get(roundId) + ".\n");
                     newIteration(cfps);
                 } else {
                     setRepliesAcceptingJustOne(newBid, cfps, replies);
@@ -172,8 +176,8 @@ public class BidderAgent extends Agent {
             }  else if (agentsLeft == 1) {
                 reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
 
-                if (bestPriceOffer.compareTo(bidsForRounds.get(ROUND_ID).getPrice()) >= 0) {
-                    bidsForRounds.put(ROUND_ID, newBid);
+                if (bestPriceOffer.compareTo(bidsForRounds.get(roundId).getPrice()) >= 0) {
+                    bidsForRounds.put(roundId, newBid);
                     reply.setContent(getLocalName() + "|" + bestPriceOffer + "|" + oldBid.getQuantity());
                     reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
                 }
