@@ -95,6 +95,14 @@ public class BuyerAgent extends Agent {
 
                     ACLMessage response = cfp.createReply();
 
+                    if (receivedOfferQuantity.compareTo(quantityToBuy) > 0) {
+                        log.info(getAID().getName() + " refused bid. They wanted: " + quantityToBuy
+                                + ", but were offered: " + receivedOfferQuantity);
+                        response.setPerformative(ACLMessage.REFUSE);
+                    } else {
+                        quantityToBuy = quantityToBuy.subtract(receivedOfferQuantity);
+                    }
+
                     if (buyersLowestPriceForOfferQuantity.compareTo(receivedOfferPrice) < 0
                             && helper.getRespondersRemaining() == 1) {
                         response.setPerformative(ACLMessage.PROPOSE);
@@ -108,8 +116,8 @@ public class BuyerAgent extends Agent {
                         response.setContent(String.valueOf(lowerOffer));
 
                     } else {
-                        log.info(getAID().getName() + " refused bid with price " + receivedOfferPrice
-                                + " and quantity " + receivedOfferQuantity);
+                        log.info(getAID().getName() + " refused bid. Their lowest price was: " + buyersLowestPriceForOfferQuantity
+                                + ", but were offered: " + receivedOfferPrice);
                         response.setPerformative(ACLMessage.REFUSE);
                     }
 

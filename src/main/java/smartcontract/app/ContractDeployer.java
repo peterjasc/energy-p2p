@@ -2,25 +2,19 @@ package smartcontract.app;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.web3j.crypto.Credentials;
-import org.web3j.crypto.WalletUtils;
-import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.http.HttpService;
-import org.web3j.tx.Contract;
-import org.web3j.tx.ManagedTransaction;
 import rx.Subscriber;
 import smartcontract.app.generated.SmartContract;
 import trading.ContractLoader;
 
 import java.math.BigInteger;
 
-public class Application {
+public class ContractDeployer {
 
-    private static final Logger log = LoggerFactory.getLogger(Application.class);
+    private static final Logger log = LoggerFactory.getLogger(ContractDeployer.class);
 
     public static void main(String[] args) throws Exception {
-        new Application().run();
+        new ContractDeployer().run();
     }
 
     private void run() throws Exception {

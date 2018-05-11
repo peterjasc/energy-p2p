@@ -95,6 +95,7 @@ public class BidderAgent extends Agent {
                 message.setProtocol(FIPANames.InteractionProtocol.FIPA_ITERATED_CONTRACT_NET);
                 message.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
 
+                roundId = findRoundIdFromLastBidEvent();
                 Bid bid = bidsForRounds.get(roundId);
                 message.setContent(getLocalName() + "|" + bid.getPrice() + "|" + bid.getQuantity());
 
