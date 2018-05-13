@@ -25,7 +25,7 @@ public class BuyerAgent extends Agent {
 
     private DFHelper helper;
     private Integer allowablePercentageDivergenceFromInitialOffer = 90;
-    private BigDecimal lowestPriceToQuantityRatio = BigDecimal.valueOf(0.5);
+    private BigDecimal buyersLowestPriceToQuantityRatio = BigDecimal.valueOf(0.5);
     private BigInteger quantityToBuy = BigInteger.ZERO;
 
 
@@ -79,9 +79,15 @@ public class BuyerAgent extends Agent {
                 protected ACLMessage handleCfp(ACLMessage cfp) {
                     BigDecimal receivedOfferPrice = BigDecimal.ZERO;
                     BigInteger receivedOfferQuantity = BigInteger.ZERO;
+
+                    if (quantityToBuy.compareTo(BigInteger.ZERO) == 0) {
+                        log.info(getAID().getName() + " has bought all the energy they need and is exiting.");
+                        helper.killAgent(myAgent);
+                    }
+
                     try {
                         String receivedContent = cfp.getContent();
-                        receivedOfferPrice = getPriceFromContent(receivedContent);
+                        receivedOfferPrice = new BigDecimal(getPriceFromContent(receivedContent));
                         receivedOfferQuantity = getQuantityFromContent(receivedContent);
                     } catch (Exception e) {
                         log.error(getAID().getName() + " couldn't read the price and/or quantity.");
@@ -90,13 +96,13 @@ public class BuyerAgent extends Agent {
                     BigDecimal lowerBound = receivedOfferPrice
                             .multiply(new BigDecimal(allowablePercentageDivergenceFromInitialOffer))
                             .divide(new BigDecimal(100), BigDecimal.ROUND_CEILING);
-                    BigDecimal buyersLowestPriceForOfferQuantity = lowestPriceToQuantityRatio
+                    BigDecimal buyersLowestPriceForOfferQuantity = buyersLowestPriceToQuantityRatio
                             .multiply(new BigDecimal(receivedOfferQuantity));
 
                     ACLMessage response = cfp.createReply();
 
                     if (receivedOfferQuantity.compareTo(quantityToBuy) > 0) {
-                        log.info(getAID().getName() + " refused bid. They wanted: " + quantityToBuy
+                        log.info(getAID().getName() + " refused bid. They wanted quantity of " + quantityToBuy
                                 + ", but were offered: " + receivedOfferQuantity);
                         response.setPerformative(ACLMessage.REFUSE);
                     } else {
@@ -116,7 +122,7 @@ public class BuyerAgent extends Agent {
                         response.setContent(String.valueOf(lowerOffer));
 
                     } else {
-                        log.info(getAID().getName() + " refused bid. Their lowest price was: " + buyersLowestPriceForOfferQuantity
+                        log.info(getAID().getName() + " refused bid. Their lowest price was " + buyersLowestPriceForOfferQuantity
                                 + ", but were offered: " + receivedOfferPrice);
                         response.setPerformative(ACLMessage.REFUSE);
                     }
@@ -127,7 +133,7 @@ public class BuyerAgent extends Agent {
                 protected ACLMessage handleAcceptProposal(ACLMessage msg, ACLMessage propose, ACLMessage accept) {
                     if (msg != null) {
                         String agentName = null;
-                        BigDecimal payment = BigDecimal.ZERO;
+                        BigInteger payment = BigInteger.ZERO;
                         BigInteger quantity = BigInteger.ZERO;
                         try {
                             String content = accept.getContent();
@@ -138,10 +144,9 @@ public class BuyerAgent extends Agent {
                             e.printStackTrace();
                         }
 
-                        Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new BuyersSubscriber();
                         ContractLoader contractLoader = new ContractLoader("password",
                                 "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
-                        SmartContract smartContract = contractLoader.loadContractWithSubscriberFromEarliestToLatest(subscriber);
+                        SmartContract smartContract = contractLoader.loadContract();
 
                         addContractToChain(smartContract,"1","10",
                                 "0x521892450a22dc762198f6ce597cfc6d85f673a3", "10", "10");
@@ -201,8 +206,8 @@ public class BuyerAgent extends Agent {
                             content.length()));
         }
 
-        private BigDecimal getPriceFromContent(String content) {
-            return new BigDecimal(
+        private BigInteger getPriceFromContent(String content) {
+            return new BigInteger(
                     content.substring(content.indexOf("|") + 1,
                             content.lastIndexOf("|")));
         }

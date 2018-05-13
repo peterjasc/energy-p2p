@@ -3,7 +3,8 @@ pragma solidity ^0.4.20;
 contract SmartContract {
     address public recipient;
 
-    event BidAccepted(uint indexed roundId, uint indexed contractId, address indexed bidder, uint quantity, uint price, uint time);
+    event BidAccepted(uint indexed roundId, uint contractId,
+        address indexed bidder, address indexed buyer, uint quantity, uint price, uint time);
 
     function SmartContract() public {
     }
@@ -20,7 +21,7 @@ contract SmartContract {
             return false;
         }
 
-        emit BidAccepted(_roundId, _cId, bidder, _quantity, msg.value, block.timestamp);
+        emit BidAccepted(_roundId, _cId, bidder, myAddress, _quantity, msg.value, block.timestamp);
         return true;
     }
 }

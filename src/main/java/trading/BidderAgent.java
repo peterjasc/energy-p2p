@@ -13,14 +13,19 @@ import smartcontract.app.generated.SmartContract;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class BidderAgent extends Agent {
     private static final long serialVersionUID = 1L;
     private static final Logger log = LoggerFactory.getLogger(BidderAgent.class);
+    public static final String buyersAddress = "9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe";
     private static BigInteger roundId = BigInteger.ZERO;
     private HashMap<BigInteger, Bid> bidsForRounds = new HashMap<>();
     private DFHelper helper;
+
+    private BigInteger discountFactorB = BigInteger.valueOf(90);
 
     protected void setup() {
         helper = DFHelper.getInstance();
@@ -32,13 +37,46 @@ public class BidderAgent extends Agent {
 
             String price = (String) args[0];
             String quantity = (String) args[1];
+            boolean haveBidHistory = false;
 
-            if (NumberUtils.isCreatable(price) && NumberUtils.isDigits(quantity)) {
-                Bid bid = new Bid(NumberUtils.createBigDecimal(price), NumberUtils.createBigInteger(quantity));
+            if (NumberUtils.isDigits(price) && NumberUtils.isDigits(quantity)) {
+                Bid bid = new Bid(NumberUtils.createBigInteger(price), NumberUtils.createBigInteger(quantity));
+                if (!haveBidHistory) {
+                    log.info(getAID().getName() + " has issued a new offer" + bid + ".\n");
+                    bidsForRounds.put(roundId, bid);
+                } else {
 
-                log.info(getAID().getName() + " has issued a new offer" + bid + ".\n");
+                    Set<SmartContract.BidAcceptedEventResponse> logsForPenultimateRoundId
+                            = getLogsForPenultimateRoundId(roundId);
+                    Bid maxGrossProfitFromPenultimateRound = getMaxGrossForBidSet(logsForPenultimateRoundId);
 
-                bidsForRounds.put(roundId, bid);
+                    List<SmartContract.BidAcceptedEventResponse> buyersBidsInTheLastRoundIfExist
+                            = getBuyersBidsInTheLastRoundIfExist(logsForPenultimateRoundId, buyersAddress);
+
+                    if (!buyersBidsInTheLastRoundIfExist.isEmpty()) {
+                        //todo: if there are more than one, then what?
+                        SmartContract.BidAcceptedEventResponse buyersBidsInTheLastRound = buyersBidsInTheLastRoundIfExist.get(0);
+
+                        BigDecimal soldCapacityDividedByAvailableCapacity
+                                = new BigDecimal(buyersBidsInTheLastRound.quantity)
+                                .divide(new BigDecimal(maxGrossProfitFromPenultimateRound.getQuantity()), RoundingMode.HALF_UP);
+
+                        if (soldCapacityDividedByAvailableCapacity.compareTo(new BigDecimal("0.25")) <= 0) {
+                            //  will lose a bit of precision here
+                            BigDecimal priceMultipliedByDiscountValue
+                                    = new BigDecimal(maxGrossProfitFromPenultimateRound.getPrice())
+                                        .multiply(new BigDecimal(discountFactorB)).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
+                            bid.setPrice(priceMultipliedByDiscountValue.toBigInteger());
+                        }
+                    } else {
+                        BigDecimal priceMultipliedByDiscountValue
+                                = new BigDecimal(maxGrossProfitFromPenultimateRound.getPrice())
+                                .multiply(new BigDecimal(discountFactorB)).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
+                        bid.setPrice(priceMultipliedByDiscountValue.toBigInteger());
+                    }
+
+                    bidsForRounds.put(roundId, maxGrossProfitFromPenultimateRound);
+                }
 
                 ServiceDescription serviceDescription = new ServiceDescription();
                 serviceDescription.setType("Bidder");
@@ -58,11 +96,43 @@ public class BidderAgent extends Agent {
         addBehaviour(new CustomContractNetInitiator(this, null));
     }
 
-    private BigInteger findRoundIdFromLastBidEvent() {
-        ContractLoader contractLoader = new ContractLoader("password",
-                "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
+    private ContractLoader getContractLoaderForThisAgent() {
+        return new ContractLoader("password",
+                "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--"
+                        + buyersAddress);
+    }
+
+    private Set<SmartContract.BidAcceptedEventResponse> getLogsForPenultimateRoundId(BigInteger roundId) {
+        ContractLoader contractLoader = getContractLoaderForThisAgent();
         SmartContract smartContract = contractLoader.loadContract();
-        return contractLoader.getLatestRoundId(smartContract);
+        return contractLoader.getLogsForRoundId(roundId.subtract(BigInteger.ONE), smartContract);
+    }
+
+    private Bid getMaxGrossForBidSet(Set<SmartContract.BidAcceptedEventResponse> bids) {
+        BigInteger maxGrossProfit = BigInteger.ZERO;
+        Bid maxGrossProfitBid = new Bid(BigInteger.ZERO, BigInteger.ZERO);
+
+        for (SmartContract.BidAcceptedEventResponse bid : bids) {
+            BigInteger grossProfit = bid.quantity.multiply(bid.price);
+            if (grossProfit.compareTo(maxGrossProfit) > 0) {
+                maxGrossProfit = grossProfit;
+                maxGrossProfitBid = new Bid(bid.price, bid.quantity);
+            }
+        }
+        return maxGrossProfitBid;
+    }
+
+    private List<SmartContract.BidAcceptedEventResponse> getBuyersBidsInTheLastRoundIfExist(Set<SmartContract.BidAcceptedEventResponse> bids,
+                                                                                            String buyersAddress) {
+        return bids.stream()
+                .filter(x -> x.buyer.equalsIgnoreCase(buyersAddress))
+                .collect(Collectors.toList());
+    }
+
+    private BigInteger findRoundIdFromLastBidEvent() {
+        ContractLoader contractLoader = getContractLoaderForThisAgent();
+        SmartContract smartContract = contractLoader.loadContract();
+        return contractLoader.findRoundIdFromLastBidEvent(smartContract);
     }
 
 
@@ -134,7 +204,7 @@ public class BidderAgent extends Agent {
             log.info(getAID().getName() + " got " + agentsLeft + " responses.");
 
             Bid oldBid = bidsForRounds.get(roundId);
-            BigDecimal bestPriceOffer = oldBid.getPrice();
+            BigInteger bestPriceOffer = oldBid.getPrice();
 
             ACLMessage reply = new ACLMessage(ACLMessage.CFP);
             Vector<ACLMessage> cfps = new Vector<>();
@@ -145,7 +215,7 @@ public class BidderAgent extends Agent {
             while (receivedResponses.hasMoreElements()) {
                 ACLMessage msg = (ACLMessage) receivedResponses.nextElement();
                 if (msg.getPerformative() == ACLMessage.PROPOSE) {
-                    BigDecimal proposal = new BigDecimal(msg.getContent());
+                    BigInteger proposal = new BigInteger(msg.getContent());
                     reply = msg.createReply();
                     reply.setPerformative(ACLMessage.CFP);
                     replies.add(reply);
@@ -174,7 +244,7 @@ public class BidderAgent extends Agent {
                     newIteration(cfps);
                 }
 
-            }  else if (agentsLeft == 1) {
+            } else if (agentsLeft == 1) {
                 reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
 
                 if (bestPriceOffer.compareTo(bidsForRounds.get(roundId).getPrice()) >= 0) {

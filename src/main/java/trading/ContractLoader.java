@@ -25,6 +25,7 @@ import smartcontract.app.generated.SmartContract;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ContractLoader {
     public static final String CONTRACT_ADDRESS = "0x3C9007Aa01B8c2BdcAB4e1dA6a04362c78E28394";
@@ -104,11 +105,37 @@ public class ContractLoader {
         return contract;
     }
 
-    public BigInteger getLatestRoundId(SmartContract smartContract) {
+    public Set<SmartContract.BidAcceptedEventResponse> getLogsForRoundId(BigInteger roundId, SmartContract smartContract) {
+        HashSet<SmartContract.BidAcceptedEventResponse> logsForAllBids = new HashSet<>();
+        List<EthLog.LogResult> logResults = getLogsForBidEvents();
+
+        for (EthLog.LogResult logResult : logResults) {
+            EthLog.LogObject logObject
+                    = (EthLog.LogObject) logResult.get();
+
+            Optional<TransactionReceipt> transactionReceipt = Optional.empty();
+            try {
+                transactionReceipt = web3j.ethGetTransactionReceipt(logObject.getTransactionHash()).send().getTransactionReceipt();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            List<SmartContract.BidAcceptedEventResponse> bidAcceptedEventResponses
+                    = smartContract.getBidAcceptedEvents(transactionReceipt.orElse(new TransactionReceipt()));
+
+            logsForAllBids.addAll(bidAcceptedEventResponses);
+        }
+
+
+        return logsForAllBids.stream()
+                .filter(x -> x.roundId.compareTo(roundId) == 0)
+                .collect(Collectors.toSet());
+    }
+
+    BigInteger findRoundIdFromLastBidEvent(SmartContract smartContract) {
         List<EthLog.LogResult> logResults = getLogsForBidEvents();
 
         EthLog.LogResult lastResult = logResults.get(logResults.size() - 1);
-        System.out.println("wololo " + lastResult.toString());
 
         EthLog.LogObject logObject
                 = (EthLog.LogObject) lastResult.get();
@@ -130,7 +157,7 @@ public class ContractLoader {
     }
 
 
-    public List<EthLog.LogResult> getLogsForBidEvents() {
+    private List<EthLog.LogResult> getLogsForBidEvents() {
         List<EthLog.LogResult> logResults = new ArrayList<>();
         final Event event = new Event("BidAccepted",
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {

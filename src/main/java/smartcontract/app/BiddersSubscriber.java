@@ -19,7 +19,6 @@ public class BiddersSubscriber extends Subscriber<SmartContract.BidAcceptedEvent
 
     @Override
     public void onNext(SmartContract.BidAcceptedEventResponse o) {
-        //todo: find out if the money was received
 
     }
 }
