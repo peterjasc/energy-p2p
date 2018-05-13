@@ -7,7 +7,8 @@ import jade.wrapper.StaleProxyException;
 
 public class TradeAgentFactory {
     public static Trader createTradeAgent(String nickname, Agent agent, ContainerController containerController,
-                                          String firstAgentArgument, String secondAgentArgument) throws StaleProxyException {
+                                          String firstAgentArgument, String secondAgentArgument,
+                                          String thirdAgentArgument) throws StaleProxyException {
         Trader trader = new Trader();
         trader.setNickname(nickname);
 
@@ -17,16 +18,24 @@ public class TradeAgentFactory {
 
         if (agent instanceof BuyerAgent) {
             classForAgentToBeCreated = BuyerAgent.class;
+            if (agent.getArguments() == null) {
+                arguments = new Object[]{firstAgentArgument,secondAgentArgument};
+            } else {
+                arguments = agent.getArguments();
+            }
 
         } else if (agent instanceof BidderAgent) {
             classForAgentToBeCreated = BidderAgent.class;
+            if (agent.getArguments() == null) {
+                arguments = new Object[]{firstAgentArgument,secondAgentArgument,thirdAgentArgument};
+            } else {
+                arguments = agent.getArguments();
+            }
+        } else {
+            throw new IllegalArgumentException("createTradeAgent needs either a BuyerAgent or a BidderAgent agent argument");
         }
 
-        if (agent.getArguments() == null) {
-            arguments = new Object[]{firstAgentArgument,secondAgentArgument};
-        } else {
-            arguments = agent.getArguments();
-        }
+
 
         trader.setTradeAgent(agent);
 

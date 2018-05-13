@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 public class BidderAgent extends Agent {
     private static final long serialVersionUID = 1L;
     private static final Logger log = LoggerFactory.getLogger(BidderAgent.class);
-    public static final String buyersAddress = "9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe";
+    public static String walletFilePath = "";
     private static BigInteger roundId = BigInteger.ZERO;
     private HashMap<BigInteger, Bid> bidsForRounds = new HashMap<>();
     private DFHelper helper;
@@ -31,12 +31,16 @@ public class BidderAgent extends Agent {
         helper = DFHelper.getInstance();
 
         Object[] args = getArguments();
-        if (args != null && args.length == 2) {
+        if (args != null && args.length == 3) {
 
             roundId = findRoundIdFromLastBidEvent();
 
             String price = (String) args[0];
             String quantity = (String) args[1];
+            walletFilePath = (String) args[2];
+            String biddersAddress = getBiddersAddressFromWalletFilePath();
+            log.info("biddersAddress is " + biddersAddress);
+
             boolean haveBidHistory = false;
 
             if (NumberUtils.isDigits(price) && NumberUtils.isDigits(quantity)) {
@@ -51,7 +55,7 @@ public class BidderAgent extends Agent {
                     Bid maxGrossProfitFromPenultimateRound = getMaxGrossForBidSet(logsForPenultimateRoundId);
 
                     List<SmartContract.BidAcceptedEventResponse> buyersBidsInTheLastRoundIfExist
-                            = getBuyersBidsInTheLastRoundIfExist(logsForPenultimateRoundId, buyersAddress);
+                            = getBiddersBidsInTheLastRoundIfExist(logsForPenultimateRoundId, biddersAddress);
 
                     if (!buyersBidsInTheLastRoundIfExist.isEmpty()) {
                         //todo: if there are more than one, then what?
@@ -96,10 +100,17 @@ public class BidderAgent extends Agent {
         addBehaviour(new CustomContractNetInitiator(this, null));
     }
 
+    private String getBiddersAddressFromWalletFilePath() {
+        if (!walletFilePath.equals("")) {
+            return walletFilePath.substring(walletFilePath.lastIndexOf("--") + 2);
+        } else {
+            log.error("Wallet file path is empty!");
+            return "";
+        }
+    }
+
     private ContractLoader getContractLoaderForThisAgent() {
-        return new ContractLoader("password",
-                "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--"
-                        + buyersAddress);
+        return new ContractLoader("password", walletFilePath);
     }
 
     private Set<SmartContract.BidAcceptedEventResponse> getLogsForPenultimateRoundId(BigInteger roundId) {
@@ -122,10 +133,10 @@ public class BidderAgent extends Agent {
         return maxGrossProfitBid;
     }
 
-    private List<SmartContract.BidAcceptedEventResponse> getBuyersBidsInTheLastRoundIfExist(Set<SmartContract.BidAcceptedEventResponse> bids,
-                                                                                            String buyersAddress) {
+    private List<SmartContract.BidAcceptedEventResponse> getBiddersBidsInTheLastRoundIfExist(Set<SmartContract.BidAcceptedEventResponse> bids,
+                                                                                             String biddersAddress) {
         return bids.stream()
-                .filter(x -> x.buyer.equalsIgnoreCase(buyersAddress))
+                .filter(x -> x.bidder.equalsIgnoreCase(biddersAddress))
                 .collect(Collectors.toList());
     }
 
@@ -167,7 +178,7 @@ public class BidderAgent extends Agent {
 
                 roundId = findRoundIdFromLastBidEvent();
                 Bid bid = bidsForRounds.get(roundId);
-                message.setContent(getLocalName() + "|" + bid.getPrice() + "|" + bid.getQuantity());
+                message.setContent(getBiddersAddressFromWalletFilePath() + "|" + bid.getPrice() + "|" + bid.getQuantity());
 
                 messages.addElement(message);
             }

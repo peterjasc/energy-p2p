@@ -8,6 +8,7 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.proto.SSIteratedContractNetResponder;
 import jade.proto.SSResponderDispatcher;
+import jnr.ffi.annotations.In;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +29,8 @@ public class BuyerAgent extends Agent {
     private BigDecimal buyersLowestPriceToQuantityRatio = BigDecimal.valueOf(0.5);
     private BigInteger quantityToBuy = BigInteger.ZERO;
 
+    private BigInteger roundId = BigInteger.ZERO;
+
 
     protected void setup() {
         helper = DFHelper.getInstance();
@@ -37,11 +40,14 @@ public class BuyerAgent extends Agent {
         helper.register(this, serviceDescription);
 
         Object[] args = getArguments();
-        if (args != null && args.length == 2) {
+        if (args != null && args.length == 3) {
             String percentage = (String) args[0];
             String quantity = (String) args[1];
+            String roundIdString = (String) args[2];
 
-            if (NumberUtils.isDigits(percentage) && NumberUtils.isDigits(quantity)) {
+            if (NumberUtils.isDigits(percentage) && NumberUtils.isDigits(quantity)
+                    && NumberUtils.isDigits(roundIdString)) {
+                roundId = NumberUtils.createBigInteger(roundIdString);
                 allowablePercentageDivergenceFromInitialOffer = NumberUtils.createInteger(percentage);
                 quantityToBuy = NumberUtils.createBigInteger(quantity);
             } else {
@@ -132,12 +138,12 @@ public class BuyerAgent extends Agent {
 
                 protected ACLMessage handleAcceptProposal(ACLMessage msg, ACLMessage propose, ACLMessage accept) {
                     if (msg != null) {
-                        String agentName = null;
+                        String biddersAddress = null;
                         BigInteger payment = BigInteger.ZERO;
                         BigInteger quantity = BigInteger.ZERO;
                         try {
                             String content = accept.getContent();
-                            agentName = getAgentNameFromContent(content);
+                            biddersAddress = getAgentNameFromContent(content);
                             payment = getPriceFromContent(content);
                             quantity = getQuantityFromContent(content);
                         } catch (Exception e) {
@@ -148,8 +154,8 @@ public class BuyerAgent extends Agent {
                                 "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
                         SmartContract smartContract = contractLoader.loadContract();
 
-                        addContractToChain(smartContract,"1","10",
-                                "0x521892450a22dc762198f6ce597cfc6d85f673a3", "10", "10");
+                        addContractToChain(smartContract,roundId.toString(),"10X",
+                                biddersAddress, quantity.toString(), payment.toString());
 
                         log.info(getAID().getName() + " has accepted the offer from "
                                 + accept.getSender().getName() + ", and will send $" + payment + " for " + quantity + " Wh.");
