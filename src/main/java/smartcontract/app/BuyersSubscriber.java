@@ -23,7 +23,6 @@ public class BuyersSubscriber extends Subscriber<SmartContract.BidAcceptedEventR
         log.info("\nroundId " + o.roundId);
         log.info("contractId " + o.contractId);
         log.info("bidder " + o.bidder);
-        log.info("buyer " + o.buyer);
         log.info("quantity " + o.quantity);
         log.info("price " + o.price);
         log.info("time " + o.time);
