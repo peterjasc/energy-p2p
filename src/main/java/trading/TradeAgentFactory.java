@@ -19,7 +19,7 @@ public class TradeAgentFactory {
         if (agent instanceof BuyerAgent) {
             classForAgentToBeCreated = BuyerAgent.class;
             if (agent.getArguments() == null) {
-                arguments = new Object[]{firstAgentArgument,secondAgentArgument};
+                arguments = new Object[]{firstAgentArgument,secondAgentArgument,thirdAgentArgument};
             } else {
                 arguments = agent.getArguments();
             }

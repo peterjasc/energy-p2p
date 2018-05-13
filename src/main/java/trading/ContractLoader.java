@@ -28,7 +28,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class ContractLoader {
-    public static final String CONTRACT_ADDRESS = "0x3C9007Aa01B8c2BdcAB4e1dA6a04362c78E28394";
+    public static final String CONTRACT_ADDRESS = "0x20CeC4A892b9C2692eb0ED4ed13AE8c9Da411653";
     private Web3j web3j;
     private Credentials credentials;
     private static final Logger log = LoggerFactory.getLogger(ContractLoader.class);
@@ -134,6 +134,10 @@ public class ContractLoader {
 
     BigInteger findRoundIdFromLastBidEvent(SmartContract smartContract) {
         List<EthLog.LogResult> logResults = getLogsForBidEvents();
+
+        if (logResults.isEmpty()) {
+            return BigInteger.ONE;
+        }
 
         EthLog.LogResult lastResult = logResults.get(logResults.size() - 1);
 

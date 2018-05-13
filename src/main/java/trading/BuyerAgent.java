@@ -8,12 +8,9 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.proto.SSIteratedContractNetResponder;
 import jade.proto.SSResponderDispatcher;
-import jnr.ffi.annotations.In;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Subscriber;
-import smartcontract.app.BuyersSubscriber;
 import smartcontract.app.generated.SmartContract;
 
 import java.math.BigDecimal;
@@ -56,7 +53,7 @@ public class BuyerAgent extends Agent {
                 doDelete();
             }
         } else {
-            log.error("Two arguments required.");
+            log.error("Three arguments required.");
             log.error("Terminating: " + this.getAID().getName());
             doDelete();
         }
@@ -111,8 +108,6 @@ public class BuyerAgent extends Agent {
                         log.info(getAID().getName() + " refused bid. They wanted quantity of " + quantityToBuy
                                 + ", but were offered: " + receivedOfferQuantity);
                         response.setPerformative(ACLMessage.REFUSE);
-                    } else {
-                        quantityToBuy = quantityToBuy.subtract(receivedOfferQuantity);
                     }
 
                     if (buyersLowestPriceForOfferQuantity.compareTo(receivedOfferPrice) < 0
@@ -143,7 +138,7 @@ public class BuyerAgent extends Agent {
                         BigInteger quantity = BigInteger.ZERO;
                         try {
                             String content = accept.getContent();
-                            biddersAddress = getAgentNameFromContent(content);
+                            biddersAddress = getBuyerAddressFromContent(content);
                             payment = getPriceFromContent(content);
                             quantity = getQuantityFromContent(content);
                         } catch (Exception e) {
@@ -154,8 +149,10 @@ public class BuyerAgent extends Agent {
                                 "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
                         SmartContract smartContract = contractLoader.loadContract();
 
-                        addContractToChain(smartContract,roundId.toString(),"10X",
+                        addContractToChain(smartContract,roundId.toString(),"1000",
                                 biddersAddress, quantity.toString(), payment.toString());
+
+                        quantityToBuy = quantityToBuy.subtract(payment);
 
                         log.info(getAID().getName() + " has accepted the offer from "
                                 + accept.getSender().getName() + ", and will send $" + payment + " for " + quantity + " Wh.");
@@ -202,7 +199,7 @@ public class BuyerAgent extends Agent {
             return lowerOffer;
         }
 
-        private String getAgentNameFromContent(String content) {
+        private String getBuyerAddressFromContent(String content) {
             return content.substring(0, content.indexOf("|"));
         }
 

@@ -33,7 +33,6 @@ public class BidderAgent extends Agent {
         Object[] args = getArguments();
         if (args != null && args.length == 3) {
 
-            roundId = findRoundIdFromLastBidEvent();
 
             String price = (String) args[0];
             String quantity = (String) args[1];
@@ -42,6 +41,8 @@ public class BidderAgent extends Agent {
             log.info("biddersAddress is " + biddersAddress);
 
             boolean haveBidHistory = false;
+
+            roundId = findRoundIdFromLastBidEvent();
 
             if (NumberUtils.isDigits(price) && NumberUtils.isDigits(quantity)) {
                 Bid bid = new Bid(NumberUtils.createBigInteger(price), NumberUtils.createBigInteger(quantity));
@@ -260,7 +261,7 @@ public class BidderAgent extends Agent {
 
                 if (bestPriceOffer.compareTo(bidsForRounds.get(roundId).getPrice()) >= 0) {
                     bidsForRounds.put(roundId, newBid);
-                    reply.setContent(getLocalName() + "|" + bestPriceOffer + "|" + oldBid.getQuantity());
+                    reply.setContent(getBiddersAddressFromWalletFilePath() + "|" + bestPriceOffer + "|" + oldBid.getQuantity());
                     reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
                 }
 
@@ -293,7 +294,7 @@ public class BidderAgent extends Agent {
             for (int replyToBuyerIndex = 0; replyToBuyerIndex < replies.size(); replyToBuyerIndex++) {
                 replies
                         .get(replyToBuyerIndex)
-                        .setContent(getLocalName() + "|" + newBid.getPrice() + "|" + newBid.getQuantity());
+                        .setContent(getBiddersAddressFromWalletFilePath() + "|" + newBid.getPrice() + "|" + newBid.getQuantity());
                 cfps.set(replyToBuyerIndex, replies.get(replyToBuyerIndex));
             }
         }
@@ -306,7 +307,7 @@ public class BidderAgent extends Agent {
                     replyToBuyer
                             .setPerformative(ACLMessage.ACCEPT_PROPOSAL);
                     replyToBuyer
-                            .setContent(getLocalName() + "|" + newBid.getPrice() + "|" + newBid.getQuantity());
+                            .setContent(getBiddersAddressFromWalletFilePath() + "|" + newBid.getPrice() + "|" + newBid.getQuantity());
                 } else {
                     replyToBuyer.setPerformative(ACLMessage.REJECT_PROPOSAL);
                 }
