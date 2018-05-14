@@ -108,6 +108,7 @@ public class BuyerAgent extends Agent {
                         log.info(getAID().getName() + " refused bid. They wanted quantity of " + quantityToBuy
                                 + ", but were offered: " + receivedOfferQuantity);
                         response.setPerformative(ACLMessage.REFUSE);
+                        return response;
                     }
 
                     if (buyersLowestPriceForOfferQuantity.compareTo(receivedOfferPrice) < 0
@@ -152,7 +153,7 @@ public class BuyerAgent extends Agent {
                         addContractToChain(smartContract,roundId.toString(),"1000",
                                 biddersAddress, quantity.toString(), payment.toString());
 
-                        quantityToBuy = quantityToBuy.subtract(payment);
+                        quantityToBuy = quantityToBuy.subtract(quantity);
 
                         log.info(getAID().getName() + " has accepted the offer from "
                                 + accept.getSender().getName() + ", and will send $" + payment + " for " + quantity + " Wh.");

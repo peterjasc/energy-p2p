@@ -14,6 +14,7 @@ import java.util.ArrayList;
 
 public class Simulation implements Serializable {
 
+    public static final String WALLET_HOME = "/home/peter/Documents/energy-p2p/private-testnet/keystore/";
     private ArrayList<Trader> agents;
     private transient ContainerController container;
 
@@ -51,14 +52,20 @@ public class Simulation implements Serializable {
         BidderAgent bidderAgent = new BidderAgent();
         agents.add(TradeAgentFactory.createTradeAgent("bidder1",bidderAgent, containerController,
                 "300", "15",
-                "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe"));
+                WALLET_HOME +
+                        "UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe"));
 
+        BidderAgent bidderAgent2 = new BidderAgent();
+        agents.add(TradeAgentFactory.createTradeAgent("bidder2",bidderAgent, containerController,
+                "300", "15",
+                WALLET_HOME +
+                        "UTC--2018-05-14T07-25-36.048259657Z--86d4f62e3053951089399ba3e8533b6f93498ae5"));
         return agents;
     }
 
     public void startAll() throws StaleProxyException {
         for (Trader trader : agents) {
-            log.info("Starting up " + trader.getNickname());
+            log.debug("Starting up " + trader.getNickname());
             trader.start();
         }
     }

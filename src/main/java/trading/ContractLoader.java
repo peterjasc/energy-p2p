@@ -45,7 +45,7 @@ public class ContractLoader {
         web3j = Web3j.build(new HttpService(
                 "http://localhost:8110"));
         try {
-            log.info("Connected to Ethereum client version: "
+            log.debug("Connected to Ethereum client version: "
                     + web3j.web3ClientVersion().send().getWeb3ClientVersion());
         } catch (IOException e) {
             e.printStackTrace();
@@ -53,7 +53,7 @@ public class ContractLoader {
 
         try {
             credentials = WalletUtils.loadCredentials(password, walletFilePath);
-            log.info("Credentials loaded");
+            log.debug("Credentials loaded");
         } catch (IOException | CipherException e) {
             e.printStackTrace();
         }
@@ -69,7 +69,7 @@ public class ContractLoader {
         }
 
         try {
-            log.info("Contract is valid: " + Objects.requireNonNull(contract).isValid());
+            log.debug("Contract is valid: " + Objects.requireNonNull(contract).isValid());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -81,7 +81,7 @@ public class ContractLoader {
         SmartContract contract = SmartContract.load(
                 CONTRACT_ADDRESS, web3j, credentials, ManagedTransaction.GAS_PRICE, Contract.GAS_LIMIT);
         try {
-            log.info("Contract is valid: " + contract.isValid());
+            log.debug("Contract is valid: " + contract.isValid());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -97,7 +97,7 @@ public class ContractLoader {
         SmartContract contract = SmartContract.load(
                 CONTRACT_ADDRESS, web3j, credentials, ManagedTransaction.GAS_PRICE, Contract.GAS_LIMIT);
         try {
-            log.info("Contract is valid: " + contract.isValid());
+            log.debug("Contract is valid: " + contract.isValid());
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -5,8 +5,8 @@ import org.slf4j.LoggerFactory;
 import rx.Subscriber;
 import smartcontract.app.generated.SmartContract;
 
-public class BuyersSubscriber extends Subscriber<SmartContract.BidAcceptedEventResponse> {
-    private static final Logger log = LoggerFactory.getLogger(BuyersSubscriber.class);
+public class DeployersSubscriber extends Subscriber<SmartContract.BidAcceptedEventResponse> {
+    private static final Logger log = LoggerFactory.getLogger(DeployersSubscriber.class);
     @Override
     public void onCompleted() {
         log.info("onCompleted");
@@ -20,7 +20,8 @@ public class BuyersSubscriber extends Subscriber<SmartContract.BidAcceptedEventR
     @Override
     public void onNext(SmartContract.BidAcceptedEventResponse o) {
 
-        log.info("\nroundId " + o.roundId);
+        log.info("\n");
+        log.info("roundId " + o.roundId);
         log.info("contractId " + o.contractId);
         log.info("bidder " + o.bidder);
         log.info("quantity " + o.quantity);

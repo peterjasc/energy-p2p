@@ -38,19 +38,18 @@ public class BidderAgent extends Agent {
             String quantity = (String) args[1];
             walletFilePath = (String) args[2];
             String biddersAddress = getBiddersAddressFromWalletFilePath();
-            log.info("biddersAddress is " + biddersAddress);
+            log.debug("biddersAddress is " + biddersAddress);
 
-            boolean haveBidHistory = false;
+            boolean haveBidHistory = true;
 
             roundId = findRoundIdFromLastBidEvent();
 
             if (NumberUtils.isDigits(price) && NumberUtils.isDigits(quantity)) {
                 Bid bid = new Bid(NumberUtils.createBigInteger(price), NumberUtils.createBigInteger(quantity));
+                log.info(getAID().getName() + " has issued a new offer" + bid + ".\n");
                 if (!haveBidHistory) {
-                    log.info(getAID().getName() + " has issued a new offer" + bid + ".\n");
                     bidsForRounds.put(roundId, bid);
                 } else {
-
                     Set<SmartContract.BidAcceptedEventResponse> logsForPenultimateRoundId
                             = getLogsForPenultimateRoundId(roundId);
                     Bid maxGrossProfitFromPenultimateRound = getMaxGrossForBidSet(logsForPenultimateRoundId);
@@ -163,9 +162,9 @@ public class BidderAgent extends Agent {
 
             AID[] agents = helper.searchDF(getAgent(), "Buyer");
 
-            log.info("The Directory Facilitator found the following agents labeled as \"Buyer\": ");
+            log.debug("The Directory Facilitator found the following agents labeled as \"Buyer\": ");
             for (AID agent : agents) {
-                log.info(agent.getName());
+                log.debug(agent.getName());
                 message.addReceiver(new AID(agent.getLocalName(), AID.ISLOCALNAME));
             }
 
