@@ -40,7 +40,7 @@ public class BidderAgent extends Agent {
             String biddersAddress = getBiddersAddressFromWalletFilePath();
             log.debug("biddersAddress is " + biddersAddress);
 
-            boolean haveBidHistory = true;
+            boolean haveBidHistory = false;
 
             roundId = findRoundIdFromLastBidEvent();
 
@@ -50,15 +50,19 @@ public class BidderAgent extends Agent {
                 if (!haveBidHistory) {
                     bidsForRounds.put(roundId, bid);
                 } else {
+
                     Set<SmartContract.BidAcceptedEventResponse> logsForPenultimateRoundId
                             = getLogsForPenultimateRoundId(roundId);
+                    log.debug("penultimateRoundId is " + roundId);
                     Bid maxGrossProfitFromPenultimateRound = getMaxGrossForBidSet(logsForPenultimateRoundId);
+                    log.debug("maxGrossProfitFromPenultimateRound is " + maxGrossProfitFromPenultimateRound);
 
                     List<SmartContract.BidAcceptedEventResponse> buyersBidsInTheLastRoundIfExist
                             = getBiddersBidsInTheLastRoundIfExist(logsForPenultimateRoundId, biddersAddress);
 
                     if (!buyersBidsInTheLastRoundIfExist.isEmpty()) {
                         //todo: if there are more than one, then what?
+                        log.debug("buyersBidsInTheLastRoundIfExist is not empty");
                         SmartContract.BidAcceptedEventResponse buyersBidsInTheLastRound = buyersBidsInTheLastRoundIfExist.get(0);
 
                         BigDecimal soldCapacityDividedByAvailableCapacity
@@ -69,17 +73,20 @@ public class BidderAgent extends Agent {
                             //  will lose a bit of precision here
                             BigDecimal priceMultipliedByDiscountValue
                                     = new BigDecimal(maxGrossProfitFromPenultimateRound.getPrice())
-                                        .multiply(new BigDecimal(discountFactorB)).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
+                                    .multiply(new BigDecimal(discountFactorB)).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
                             bid.setPrice(priceMultipliedByDiscountValue.toBigInteger());
+                        } else {
+                            bid.setPrice(maxGrossProfitFromPenultimateRound.getPrice());
                         }
                     } else {
+                        log.debug("buyersBidsInTheLastRoundIfExist is  empty");
                         BigDecimal priceMultipliedByDiscountValue
                                 = new BigDecimal(maxGrossProfitFromPenultimateRound.getPrice())
                                 .multiply(new BigDecimal(discountFactorB)).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
                         bid.setPrice(priceMultipliedByDiscountValue.toBigInteger());
                     }
 
-                    bidsForRounds.put(roundId, maxGrossProfitFromPenultimateRound);
+                    bidsForRounds.put(roundId, bid);
                 }
 
                 ServiceDescription serviceDescription = new ServiceDescription();
