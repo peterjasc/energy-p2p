@@ -251,6 +251,7 @@ public class BidderAgent extends Agent {
                             + bidsForRounds.get(roundId) + ".\n");
                     newIteration(cfps);
                 } else {
+                    log.info(getAID().getName() + " will reject all but one offer, since they have received two or more offers of equal value");
                     setRepliesAcceptingJustOne(newBid, cfps, replies);
                     newIteration(cfps);
                 }
@@ -258,10 +259,18 @@ public class BidderAgent extends Agent {
             } else if (agentsLeft == 1) {
                 reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
 
-                if (bestPriceOffer.compareTo(bidsForRounds.get(roundId).getPrice()) >= 0) {
+                if (newBid.getPrice().compareTo(bidsForRounds.get(roundId).getPrice()) >= 0) {
+                    log.info(getAID().getName()
+                            + " will accept the price offered that is higher or equal to the ones received before");
                     bidsForRounds.put(roundId, newBid);
-                    reply.setContent(getBiddersAddressFromWalletFilePath() + "|" + bestPriceOffer + "|" + oldBid.getQuantity());
+                    reply.setContent(getBiddersAddressFromWalletFilePath() + "|" + newBid.getPrice() + "|" + oldBid.getQuantity());
                     reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+                } else {
+                    log.info(getAID().getName() + " will ask for a better price: "
+                            + bidsForRounds.get(roundId).getPrice() + "instead of "
+                            + newBid.getPrice() + " (an offer they previously received from another party)");
+                    setReplies(newBid, cfps, replies);
+                    newIteration(cfps);
                 }
 
                 acceptances.addElement(reply);

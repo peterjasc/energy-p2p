@@ -82,14 +82,19 @@ public class BuyerAgent extends Agent {
                 protected ACLMessage handleCfp(ACLMessage cfp) {
                     BigDecimal receivedOfferPrice = BigDecimal.ZERO;
                     BigInteger receivedOfferQuantity = BigInteger.ZERO;
+                    String buyersAddress = "";
 
                     if (quantityToBuy.compareTo(BigInteger.ZERO) == 0) {
                         log.info(getAID().getName() + " has bought all the energy they need and is exiting.");
                         helper.killAgent(myAgent);
+                        ACLMessage exitResponse = cfp.createReply();
+                        exitResponse.setPerformative(ACLMessage.REFUSE);
+                        return exitResponse;
                     }
 
                     try {
                         String receivedContent = cfp.getContent();
+                        buyersAddress = getBuyerAddressFromContent(receivedContent);
                         receivedOfferPrice = new BigDecimal(getPriceFromContent(receivedContent));
                         receivedOfferQuantity = getQuantityFromContent(receivedContent);
                     } catch (Exception e) {
@@ -105,7 +110,8 @@ public class BuyerAgent extends Agent {
                     ACLMessage response = cfp.createReply();
 
                     if (receivedOfferQuantity.compareTo(quantityToBuy) > 0) {
-                        log.info(getAID().getName() + " refused bid. They wanted quantity of " + quantityToBuy
+                        log.info(getAID().getName() + " refused bid from " + buyersAddress
+                                + ". They wanted quantity of " + quantityToBuy
                                 + ", but were offered: " + receivedOfferQuantity);
                         response.setPerformative(ACLMessage.REFUSE);
                         return response;
