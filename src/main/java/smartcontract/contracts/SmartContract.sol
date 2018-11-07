@@ -5,7 +5,7 @@ contract SmartContract {
 
     event BidAccepted(uint indexed roundId, uint indexed contractId, address indexed bidder, uint quantity, uint price, uint time);
 
-    function SmartContract() public {
+    constructor() public {
     }
 
     // msg.value == price

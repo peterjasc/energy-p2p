@@ -28,7 +28,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class ContractLoader {
-    public static final String CONTRACT_ADDRESS = "0x3C9007Aa01B8c2BdcAB4e1dA6a04362c78E28394";
+    private static final String CONTRACT_ADDRESS = "0xEcF86DcA045906267f1E905fE86944Cc617eD38f";
     private Web3j web3j;
     private Credentials credentials;
     private static final Logger log = LoggerFactory.getLogger(ContractLoader.class);

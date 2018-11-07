@@ -27,6 +27,7 @@ public class BidderAgent extends Agent {
 
     private BigInteger discountFactorB = BigInteger.valueOf(90);
 
+    // todo: subtract quantity
     protected void setup() {
         helper = DFHelper.getInstance();
 
@@ -94,7 +95,7 @@ public class BidderAgent extends Agent {
                 serviceDescription.setName(getLocalName());
                 helper.register(this, serviceDescription);
             } else {
-                log.error("Payment must be a positive decimal number and quantity positive integer");
+                log.error("Percentage, quantity must be positive integers");
                 log.error("Terminating: " + this.getAID().getName());
                 doDelete();
             }
@@ -199,7 +200,7 @@ public class BidderAgent extends Agent {
 
         protected void handleRefuse(ACLMessage refuse) {
             globalResponses++;
-            log.info(refuse.getSender().getName() + " is not willing to buy any lower.");
+            log.info(refuse.getSender().getName() + " has rejected the proposal.");
             helper.removeReceiverAgent(refuse.getSender(), refuse);
         }
 
@@ -211,8 +212,7 @@ public class BidderAgent extends Agent {
 
         protected void handleInform(ACLMessage inform) {
             globalResponses++;
-            log.info(getAID().getName() + " has no stored power available.");
-            helper.killAgent(myAgent);
+            log.info(getAID().getName() + " confirmed the offer from " + inform.getAllReceiver().next());
         }
 
         protected void handleAllResponses(Vector responses, Vector acceptances) {
@@ -221,10 +221,13 @@ public class BidderAgent extends Agent {
 
             log.info(getAID().getName() + " got " + agentsLeft + " responses.");
 
+            if (agentsLeft == 0) {
+                return;
+            }
+
             Bid oldBid = bidsForRounds.get(roundId);
             BigInteger bestPriceOffer = oldBid.getPrice();
 
-            ACLMessage reply = new ACLMessage(ACLMessage.CFP);
             Vector<ACLMessage> cfps = new Vector<>();
             Enumeration<?> receivedResponses = responses.elements();
 
@@ -234,7 +237,7 @@ public class BidderAgent extends Agent {
                 ACLMessage msg = (ACLMessage) receivedResponses.nextElement();
                 if (msg.getPerformative() == ACLMessage.PROPOSE) {
                     BigInteger proposal = new BigInteger(msg.getContent());
-                    reply = msg.createReply();
+                    ACLMessage reply = msg.createReply();
                     reply.setPerformative(ACLMessage.CFP);
                     replies.add(reply);
                     if (proposal.compareTo(bestPriceOffer) < 0) {
@@ -264,25 +267,24 @@ public class BidderAgent extends Agent {
                 }
 
             } else if (agentsLeft == 1) {
-                reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
+
 
                 if (newBid.getPrice().compareTo(bidsForRounds.get(roundId).getPrice()) >= 0) {
+                    ACLMessage reply = new ACLMessage(ACLMessage.CFP);
                     log.info(getAID().getName()
                             + " will accept the price offered that is higher or equal to the ones received before");
                     bidsForRounds.put(roundId, newBid);
                     reply.setContent(getBiddersAddressFromWalletFilePath() + "|" + newBid.getPrice() + "|" + oldBid.getQuantity());
                     reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+                    acceptances.addElement(reply);
                 } else {
                     log.info(getAID().getName() + " will ask for a better price: "
-                            + bidsForRounds.get(roundId).getPrice() + "instead of "
+                            + bidsForRounds.get(roundId).getPrice() + " instead of "
                             + newBid.getPrice() + " (an offer they previously received from another party)");
                     setReplies(newBid, cfps, replies);
                     newIteration(cfps);
                 }
 
-                acceptances.addElement(reply);
-            } else {
-                log.info("No agent accepted the job.");
             }
         }
 

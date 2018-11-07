@@ -21,16 +21,13 @@ public class ContractDeployer {
     private void run() throws Exception {
         ContractLoader contractLoader = new ContractLoader("password",
                 "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
-//
+
 //        log.info("Deploying smart contract (remember to start mining!!!)");
 //        SmartContract contract = contractLoader.deployContract();
 //        System.exit(0);
 
-
         SmartContract contract = contractLoader.loadContract();
         log.info("Contract is valid: " + contract.isValid());
-        String contractAddress = contract.getContractAddress();
-        log.info("Smart contract deployed to address " + contractAddress);
 
 //     event BidAccepted(uint indexed roundId, uint indexed contractId, address indexed bidder, uint quantity, uint price, uint time);
 //        log.info("Value stored in remote smart contract: " + contract.addContract(
@@ -41,26 +38,28 @@ public class ContractDeployer {
 //                new BigInteger("10", 10)
 //        ).send());
 
-//        Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new DeployersSubscriber();
+// Get all the contracts
+        Subscriber<SmartContract.BidAcceptedEventResponse> subscriber = new DeployersSubscriber();
+
+        contract.bidAcceptedEventObservable(
+                DefaultBlockParameterName.fromString(DefaultBlockParameterName.EARLIEST.getValue()),
+                DefaultBlockParameterName.fromString(DefaultBlockParameterName.LATEST.getValue())).subscribe(subscriber);
+
+// Get all the contracts from a specific round
 //
-//        contract.bidAcceptedEventObservable(
-//                DefaultBlockParameterName.fromString(DefaultBlockParameterName.EARLIEST.getValue()),
-//                DefaultBlockParameterName.fromString(DefaultBlockParameterName.LATEST.getValue())).subscribe(subscriber);
-
-
-        SmartContract smartContract = contractLoader.loadContract();
-        Set<SmartContract.BidAcceptedEventResponse> set
-                = contractLoader.getLogsForRoundId(BigInteger.valueOf(3), smartContract);
-        for (SmartContract.BidAcceptedEventResponse o : set) {
-        log.info("\n");
-        log.info("roundId " + o.roundId);
-        log.info("contractId " + o.contractId);
-        log.info("bidder " + o.bidder);
-        log.info("quantity " + o.quantity);
-        log.info("price " + o.price);
-        log.info("time " + o.time);
-        log.info("log " + o.log);
-        }
+//        SmartContract smartContract = contractLoader.loadContract();
+//        Set<SmartContract.BidAcceptedEventResponse> set
+//                = contractLoader.getLogsForRoundId(BigInteger.valueOf(4), smartContract);
+//        for (SmartContract.BidAcceptedEventResponse o : set) {
+//        log.info("\n");
+//        log.info("roundId " + o.roundId);
+//        log.info("contractId " + o.contractId);
+//        log.info("bidder " + o.bidder);
+//        log.info("quantity " + o.quantity);
+//        log.info("price " + o.price);
+//        log.info("time " + o.time);
+//        log.info("log " + o.log);
+//        }
 
     }
 
