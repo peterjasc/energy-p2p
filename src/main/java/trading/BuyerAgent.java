@@ -6,31 +6,29 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPANames;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
-import jade.proto.SSIteratedContractNetResponder;
+import jade.proto.SSContractNetResponder;
 import jade.proto.SSResponderDispatcher;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.commons.validator.routines.BigDecimalValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import smartcontract.app.generated.SmartContract;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Random;
 
 public class BuyerAgent extends Agent {
     private static final long serialVersionUID = 1L;
     private static final Logger log = LoggerFactory.getLogger(BuyerAgent.class);
 
-    private DFHelper helper;
-    private Integer allowablePercentageDivergenceFromInitialOffer = 90;
-    private BigDecimal buyersLowestPriceToQuantityRatio = BigDecimal.valueOf(0.5);
+    private BigDecimal buyersHighestPriceToQuantityRatio = BigDecimal.valueOf(20);
     private BigInteger quantityToBuy = BigInteger.ZERO;
 
     private BigInteger roundId = BigInteger.ZERO;
 
 
     protected void setup() {
-        helper = DFHelper.getInstance();
+        DFHelper helper = DFHelper.getInstance();
         ServiceDescription serviceDescription = new ServiceDescription();
         serviceDescription.setType("Buyer");
         serviceDescription.setName(getLocalName());
@@ -38,17 +36,17 @@ public class BuyerAgent extends Agent {
 
         Object[] args = getArguments();
         if (args != null && args.length == 3) {
-            String percentage = (String) args[0];
+            String ratio = (String) args[0];
             String quantity = (String) args[1];
             String roundIdString = (String) args[2];
 
-            if (NumberUtils.isDigits(percentage) && NumberUtils.isDigits(quantity)
+            if (BigDecimalValidator.getInstance().validate(ratio) != null && NumberUtils.isDigits(quantity)
                     && NumberUtils.isDigits(roundIdString)) {
                 roundId = NumberUtils.createBigInteger(roundIdString);
-                allowablePercentageDivergenceFromInitialOffer = NumberUtils.createInteger(percentage);
+                buyersHighestPriceToQuantityRatio = NumberUtils.createBigDecimal(ratio);
                 quantityToBuy = NumberUtils.createBigInteger(quantity);
             } else {
-                log.error("Percentage, quantity and round ID must be positive integers");
+                log.error("Percentage must be a positive decimal, quantity and round ID must be positive integers");
                 log.error("Terminating: " + this.getAID().getName());
                 doDelete();
             }
@@ -63,7 +61,7 @@ public class BuyerAgent extends Agent {
     }
 
     private MessageTemplate getInteractionProtocolBehaviourTemplate() {
-        final String IP = FIPANames.InteractionProtocol.FIPA_ITERATED_CONTRACT_NET;
+        final String IP = FIPANames.InteractionProtocol.FIPA_CONTRACT_NET;
         return MessageTemplate.and(MessageTemplate.MatchProtocol(IP),
                 MessageTemplate.MatchPerformative(ACLMessage.CFP));
     }
@@ -76,7 +74,7 @@ public class BuyerAgent extends Agent {
         }
 
         protected Behaviour createResponder(ACLMessage message) {
-            return new SSIteratedContractNetResponder(myAgent, message) {
+            return new SSContractNetResponder(myAgent, message) {
                 private static final long serialVersionUID = 1L;
 
                 protected ACLMessage handleCfp(ACLMessage cfp) {
@@ -93,18 +91,11 @@ public class BuyerAgent extends Agent {
 
                     try {
                         String receivedContent = cfp.getContent();
-                        receivedOfferPrice = new BigDecimal(getPriceFromContent(receivedContent));
+                        receivedOfferPrice =  getPriceFromContent(receivedContent);
                         receivedOfferQuantity = getQuantityFromContent(receivedContent);
                     } catch (Exception e) {
                         log.error(getAID().getName() + " couldn't read the price and/or quantity.");
                     }
-
-
-                    BigDecimal lowerBound = receivedOfferPrice
-                            .multiply(new BigDecimal(allowablePercentageDivergenceFromInitialOffer))
-                            .divide(new BigDecimal(100), BigDecimal.ROUND_CEILING);
-                    BigDecimal buyersLowestPriceForOfferQuantity = buyersLowestPriceToQuantityRatio
-                            .multiply(new BigDecimal(receivedOfferQuantity));
 
                     ACLMessage response = cfp.createReply();
 
@@ -116,20 +107,19 @@ public class BuyerAgent extends Agent {
                         return response;
                     }
 
-                    if (buyersLowestPriceForOfferQuantity.compareTo(receivedOfferPrice) < 0
-                            && helper.getRespondersRemaining() == 1) {
+                    BigDecimal buyersHighestPriceForOfferQuantity = buyersHighestPriceToQuantityRatio
+                            .multiply(new BigDecimal(receivedOfferQuantity)).stripTrailingZeros();
+                    // avoid the scientific notation, eg 3E+2, to avoid comparision issues
+                    if (buyersHighestPriceForOfferQuantity.scale() < 0) {
+                        buyersHighestPriceForOfferQuantity = buyersHighestPriceForOfferQuantity.setScale(0,BigDecimal.ROUND_HALF_UP);
+                    }
+
+                    if (buyersHighestPriceForOfferQuantity.compareTo(receivedOfferPrice) >= 0) {
                         response.setPerformative(ACLMessage.PROPOSE);
                         response.setContent(String.valueOf(receivedOfferPrice));
 
-                    } else if (buyersLowestPriceForOfferQuantity.compareTo(lowerBound) < 0
-                            && helper.getRespondersRemaining() > 1) {
-                        BigDecimal lowerOffer = generateLowerOfferInAccordanceWithConstraints(receivedOfferPrice, lowerBound);
-
-                        response.setPerformative(ACLMessage.PROPOSE);
-                        response.setContent(String.valueOf(lowerOffer));
-
                     } else {
-                        log.info(getAID().getName() + " refused bid. Their lowest price was " + buyersLowestPriceForOfferQuantity
+                        log.info(getAID().getName() + " refused bid. Their highest price was " + buyersHighestPriceForOfferQuantity
                                 + ", but were offered: " + receivedOfferPrice);
                         response.setPerformative(ACLMessage.REFUSE);
                     }
@@ -145,7 +135,7 @@ public class BuyerAgent extends Agent {
                         try {
                             String content = accept.getContent();
                             biddersAddress = getAddressFromContent(content);
-                            payment = getPriceFromContent(content);
+                            payment = getPriceFromContent(content).toBigInteger();
                             quantity = getQuantityFromContent(content);
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -180,30 +170,30 @@ public class BuyerAgent extends Agent {
             };
         }
 
-        // todo: forever in the loop, if maxSubtractableAmount too big
-        private BigDecimal generateLowerOfferInAccordanceWithConstraints(BigDecimal receivedOfferPrice,
-                                                                         BigDecimal lowerBound) {
-            int maxSubtractableAmount;
-            int scale = String.valueOf(receivedOfferPrice).length();
-
-            if (scale == 1) {
-                maxSubtractableAmount = 1;
-            } else if (scale == 2) {
-                maxSubtractableAmount = 5;
-            } else if (scale == 3) {
-                maxSubtractableAmount = 50;
-            } else {
-                maxSubtractableAmount = 200;
-            }
-
-            Random generate = new Random();
-            BigDecimal lowerOffer = lowerBound;
-            while (lowerOffer.compareTo(lowerBound) <= 0) {
-                BigDecimal randomNumber = new BigDecimal(generate.nextInt(maxSubtractableAmount) + 1);
-                lowerOffer = receivedOfferPrice.subtract(randomNumber);
-            }
-            return lowerOffer;
-        }
+//        // todo: forever in the loop, if maxSubtractableAmount too big
+//        private BigDecimal generateLowerOfferInAccordanceWithConstraints(BigDecimal receivedOfferPrice,
+//                                                                         BigDecimal lowerBound) {
+//            int maxSubtractableAmount;
+//            int scale = String.valueOf(receivedOfferPrice).length();
+//
+//            if (scale == 1) {
+//                maxSubtractableAmount = 1;
+//            } else if (scale == 2) {
+//                maxSubtractableAmount = 5;
+//            } else if (scale == 3) {
+//                maxSubtractableAmount = 50;
+//            } else {
+//                maxSubtractableAmount = 200;
+//            }
+//
+//            Random generate = new Random();
+//            BigDecimal lowerOffer = lowerBound;
+//            while (lowerOffer.compareTo(lowerBound) <= 0) {
+//                BigDecimal randomNumber = new BigDecimal(generate.nextInt(maxSubtractableAmount) + 1);
+//                lowerOffer = receivedOfferPrice.subtract(randomNumber);
+//            }
+//            return lowerOffer;
+//        }
 
         private String getAddressFromContent(String content) {
             return content.substring(0, content.indexOf("|"));
@@ -215,12 +205,13 @@ public class BuyerAgent extends Agent {
                             content.length()));
         }
 
-        private BigInteger getPriceFromContent(String content) {
-            return new BigInteger(
+        private BigDecimal getPriceFromContent(String content) {
+            return new BigDecimal(
                     content.substring(content.indexOf("|") + 1,
                             content.lastIndexOf("|")));
         }
 
+        // todo:bidder address always the same
         private void addContractToChain(SmartContract smartContract,
                                         String roundId, String contractId,
                                         String bidderAddress, String quantity, String price) {

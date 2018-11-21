@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 public class BidderAgent extends Agent {
     private static final long serialVersionUID = 1L;
     private static final Logger log = LoggerFactory.getLogger(BidderAgent.class);
-    public static String walletFilePath = "";
+    private static String walletFilePath = "";
     private static BigInteger roundId = BigInteger.ZERO;
     private HashMap<BigInteger, Bid> bidsForRounds = new HashMap<>();
     private DFHelper helper;
@@ -181,7 +181,7 @@ public class BidderAgent extends Agent {
                         + getAgent().getAID().getName());
                 helper.killAgent(getAgent());
             } else {
-                message.setProtocol(FIPANames.InteractionProtocol.FIPA_ITERATED_CONTRACT_NET);
+                message.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
                 message.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
 
                 roundId = findRoundIdFromLastBidEvent();
@@ -212,7 +212,7 @@ public class BidderAgent extends Agent {
 
         protected void handleInform(ACLMessage inform) {
             globalResponses++;
-            log.info(getAID().getName() + " confirmed the offer from " + inform.getAllReceiver().next());
+            log.info(getAID().getName() + " got confirmation for the offer");
         }
 
         protected void handleAllResponses(Vector responses, Vector acceptances) {
@@ -233,6 +233,7 @@ public class BidderAgent extends Agent {
 
             ArrayList<ACLMessage> replies = new ArrayList<>();
 
+            // todo:need the bestpriceoffer, but dont really need to set cfps, because they will be overwritten later anyway
             while (receivedResponses.hasMoreElements()) {
                 ACLMessage msg = (ACLMessage) receivedResponses.nextElement();
                 if (msg.getPerformative() == ACLMessage.PROPOSE) {
@@ -267,8 +268,6 @@ public class BidderAgent extends Agent {
                 }
 
             } else if (agentsLeft == 1) {
-
-
                 if (newBid.getPrice().compareTo(bidsForRounds.get(roundId).getPrice()) >= 0) {
                     ACLMessage reply = new ACLMessage(ACLMessage.CFP);
                     log.info(getAID().getName()
@@ -276,11 +275,13 @@ public class BidderAgent extends Agent {
                     bidsForRounds.put(roundId, newBid);
                     reply.setContent(getBiddersAddressFromWalletFilePath() + "|" + newBid.getPrice() + "|" + oldBid.getQuantity());
                     reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-                    acceptances.addElement(reply);
+                    cfps.set(0, reply);
+                    newIteration(cfps);
                 } else {
                     log.info(getAID().getName() + " will ask for a better price: "
                             + bidsForRounds.get(roundId).getPrice() + " instead of "
                             + newBid.getPrice() + " (an offer they previously received from another party)");
+                    newBid.setPrice(bidsForRounds.get(roundId).getPrice());
                     setReplies(newBid, cfps, replies);
                     newIteration(cfps);
                 }
