@@ -233,7 +233,9 @@ public class BidderAgent extends Agent {
 
             ArrayList<ACLMessage> replies = new ArrayList<>();
 
-            // todo:need the bestpriceoffer, but dont really need to set cfps, because they will be overwritten later anyway
+            // todo: it might seem that we only need the bestpriceoffer, however
+            // todo: it's difficult to get the replies that we should reply to (only the ones that did PROPOSE)
+            // todo: otherwise
             while (receivedResponses.hasMoreElements()) {
                 ACLMessage msg = (ACLMessage) receivedResponses.nextElement();
                 if (msg.getPerformative() == ACLMessage.PROPOSE) {
@@ -249,7 +251,7 @@ public class BidderAgent extends Agent {
             }
 
             Bid newBid = new Bid(bestPriceOffer, oldBid.getQuantity());
-            if (agentsLeft > 1) {
+            if (agentsLeft > 1 && cfps.size() > 0) {
                 bidsForRounds.put(roundId, newBid);
 
                 boolean offersAreEqual = checkIfOffersAreEqual(responses);
@@ -267,15 +269,17 @@ public class BidderAgent extends Agent {
                     newIteration(cfps);
                 }
 
-            } else if (agentsLeft == 1) {
+            } else if (agentsLeft == 1 && cfps.size() > 0) {
                 if (newBid.getPrice().compareTo(bidsForRounds.get(roundId).getPrice()) >= 0) {
-                    ACLMessage reply = new ACLMessage(ACLMessage.CFP);
+                    ACLMessage reply;
                     log.info(getAID().getName()
                             + " will accept the price offered that is higher or equal to the ones received before");
                     bidsForRounds.put(roundId, newBid);
-                    reply.setContent(getBiddersAddressFromWalletFilePath() + "|" + newBid.getPrice() + "|" + oldBid.getQuantity());
+
+                    reply = replies.get(0);
+                    reply.setContent(getBiddersAddressFromWalletFilePath() + "|" + newBid.getPrice() + "|" + newBid.getQuantity());
                     reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-                    cfps.set(0, reply);
+                    cfps.set(0, replies.get(0));
                     newIteration(cfps);
                 } else {
                     log.info(getAID().getName() + " will ask for a better price: "
@@ -286,6 +290,8 @@ public class BidderAgent extends Agent {
                     newIteration(cfps);
                 }
 
+            } else {
+                log.error("cfps size is 0");
             }
         }
 
