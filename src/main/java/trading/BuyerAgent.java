@@ -23,6 +23,7 @@ public class BuyerAgent extends Agent {
 
     private BigDecimal buyersHighestPriceToQuantityRatio = BigDecimal.valueOf(20);
     private BigInteger quantityToBuy = BigInteger.ZERO;
+    private String userFilePath = "";
 
     private BigInteger roundId = BigInteger.ZERO;
 
@@ -35,10 +36,11 @@ public class BuyerAgent extends Agent {
         helper.register(this, serviceDescription);
 
         Object[] args = getArguments();
-        if (args != null && args.length == 3) {
+        if (args != null && args.length == 4) {
             String ratio = (String) args[0];
             String quantity = (String) args[1];
             String roundIdString = (String) args[2];
+            userFilePath = (String) args[3];
 
             if (BigDecimalValidator.getInstance().validate(ratio) != null && NumberUtils.isDigits(quantity)
                     && NumberUtils.isDigits(roundIdString)) {
@@ -145,7 +147,7 @@ public class BuyerAgent extends Agent {
                                 + accept.getSender().getName() + ", and will send $" + payment + " for " + quantity + " Wh.");
 
                         ContractLoader contractLoader = new ContractLoader("password",
-                                "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
+                                "/home/peter/Documents/energy-p2p/private-testnet/keystore/" + userFilePath);
                         SmartContract smartContract = contractLoader.loadContract();
 
                         addContractToChain(smartContract, roundId.toString(), "1000",
@@ -211,7 +213,6 @@ public class BuyerAgent extends Agent {
                             content.lastIndexOf("|")));
         }
 
-        // todo:bidder address always the same
         private void addContractToChain(SmartContract smartContract,
                                         String roundId, String contractId,
                                         String bidderAddress, String quantity, String price) {

@@ -39,15 +39,13 @@ public class Simulation implements Serializable {
         ArrayList<Trader> agents = new ArrayList<>();
 
         BuyerAgent buyerAgent = new BuyerAgent();
-
-
         agents.add(TradeAgentFactory.createTradeAgent("buyer1",buyerAgent, containerController,
-                "20.0", "15","11"));
+                "20.0", "15","13","UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe"));
 
         BuyerAgent buyerAgent2 = new BuyerAgent();
 
         agents.add(TradeAgentFactory.createTradeAgent("buyer2",buyerAgent2, containerController,
-                "20", "15","11"));
+                "20", "15","13","UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe"));
 
         BidderAgent bidderAgent = new BidderAgent();
         agents.add(TradeAgentFactory.createTradeAgent("bidder1",bidderAgent, containerController,

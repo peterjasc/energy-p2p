@@ -20,8 +20,8 @@ import java.util.stream.Collectors;
 public class BidderAgent extends Agent {
     private static final long serialVersionUID = 1L;
     private static final Logger log = LoggerFactory.getLogger(BidderAgent.class);
-    private static String walletFilePath = "";
-    private static BigInteger roundId = BigInteger.ZERO;
+    private String walletFilePath = "";
+    private BigInteger roundId = BigInteger.ZERO;
     private HashMap<BigInteger, Bid> bidsForRounds = new HashMap<>();
     private DFHelper helper;
 
