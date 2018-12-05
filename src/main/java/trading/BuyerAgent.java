@@ -111,7 +111,8 @@ public class BuyerAgent extends Agent {
 
                     BigDecimal buyersHighestPriceForOfferQuantity = buyersHighestPriceToQuantityRatio
                             .multiply(new BigDecimal(receivedOfferQuantity)).stripTrailingZeros();
-                    // avoid the scientific notation, eg 3E+2, to avoid comparision issues
+
+                    // avoid using the scientific notation, eg 3E+2, to avoid comparision issues
                     if (buyersHighestPriceForOfferQuantity.scale() < 0) {
                         buyersHighestPriceForOfferQuantity = buyersHighestPriceForOfferQuantity.setScale(0,BigDecimal.ROUND_HALF_UP);
                     }
@@ -171,31 +172,6 @@ public class BuyerAgent extends Agent {
                 }
             };
         }
-
-//        // todo: forever in the loop, if maxSubtractableAmount too big
-//        private BigDecimal generateLowerOfferInAccordanceWithConstraints(BigDecimal receivedOfferPrice,
-//                                                                         BigDecimal lowerBound) {
-//            int maxSubtractableAmount;
-//            int scale = String.valueOf(receivedOfferPrice).length();
-//
-//            if (scale == 1) {
-//                maxSubtractableAmount = 1;
-//            } else if (scale == 2) {
-//                maxSubtractableAmount = 5;
-//            } else if (scale == 3) {
-//                maxSubtractableAmount = 50;
-//            } else {
-//                maxSubtractableAmount = 200;
-//            }
-//
-//            Random generate = new Random();
-//            BigDecimal lowerOffer = lowerBound;
-//            while (lowerOffer.compareTo(lowerBound) <= 0) {
-//                BigDecimal randomNumber = new BigDecimal(generate.nextInt(maxSubtractableAmount) + 1);
-//                lowerOffer = receivedOfferPrice.subtract(randomNumber);
-//            }
-//            return lowerOffer;
-//        }
 
         private String getAddressFromContent(String content) {
             return content.substring(0, content.indexOf("|"));
