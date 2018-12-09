@@ -83,13 +83,8 @@ public class BuyerAgent extends Agent {
                     BigDecimal receivedOfferPrice = BigDecimal.ZERO;
                     BigInteger receivedOfferQuantity = BigInteger.ZERO;
 
-                    if (quantityToBuy.compareTo(BigInteger.ZERO) == 0) {
-                        log.info(getAID().getName()
-                                + " has bought all the energy they need and rejects the proposal from " + cfp.getSender());
-                        ACLMessage exitResponse = cfp.createReply();
-                        exitResponse.setPerformative(ACLMessage.REFUSE);
-                        return exitResponse;
-                    }
+                    ACLMessage exitResponse = refuseUnnecessaryBid(cfp);
+                    if (exitResponse != null) return exitResponse;
 
                     try {
                         String receivedContent = cfp.getContent();
@@ -132,6 +127,12 @@ public class BuyerAgent extends Agent {
 
                 protected ACLMessage handleAcceptProposal(ACLMessage msg, ACLMessage propose, ACLMessage accept) {
                     if (msg != null) {
+                        ACLMessage exitResponse = refuseUnnecessaryBid(msg);
+                        if (exitResponse != null) {
+                            exitResponse.setContent(getPriceFromContent(accept.getContent()).toPlainString());
+                            return exitResponse;
+                        }
+
                         String biddersAddress = null;
                         BigInteger payment = BigInteger.ZERO;
                         BigInteger quantity = BigInteger.ZERO;
@@ -158,6 +159,7 @@ public class BuyerAgent extends Agent {
 
                         ACLMessage inform = accept.createReply();
                         inform.setPerformative(ACLMessage.INFORM);
+                        inform.setContent(quantity.toString());
                         return inform;
 
                     } else {
@@ -171,6 +173,17 @@ public class BuyerAgent extends Agent {
                     log.info(reject.getSender().getName() + " rejected offer from " + getAID().getName());
                 }
             };
+        }
+
+        private ACLMessage refuseUnnecessaryBid(ACLMessage msg) {
+            if (quantityToBuy.compareTo(BigInteger.ZERO) == 0) {
+                log.info(getAID().getName()
+                        + " has bought all the energy they need and rejects the proposal from " + msg.getSender());
+                ACLMessage exitResponse = msg.createReply();
+                exitResponse.setPerformative(ACLMessage.REFUSE);
+                return exitResponse;
+            }
+            return null;
         }
 
         private String getAddressFromContent(String content) {

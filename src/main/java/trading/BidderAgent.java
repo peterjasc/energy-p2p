@@ -22,6 +22,7 @@ public class BidderAgent extends Agent {
     private static final Logger log = LoggerFactory.getLogger(BidderAgent.class);
     private String walletFilePath = "";
     private BigInteger roundId = BigInteger.ZERO;
+    private BigInteger quantityToSell = BigInteger.ZERO;
     private HashMap<BigInteger, Bid> bidsForRounds = new HashMap<>();
     private DFHelper helper;
 
@@ -47,6 +48,8 @@ public class BidderAgent extends Agent {
             roundId = findRoundIdFromLastBidEvent();
 
             if (NumberUtils.isDigits(price) && NumberUtils.isDigits(quantity)) {
+                quantityToSell = new BigInteger(quantity);
+
                 Bid bid = new Bid(NumberUtils.createBigInteger(price), NumberUtils.createBigInteger(quantity));
                 log.info(getAID().getName() + " has issued a new offer" + bid + ".\n");
                 if (!haveBidHistory) {
@@ -195,13 +198,45 @@ public class BidderAgent extends Agent {
             return messages;
         }
 
-        protected void handlePropose(ACLMessage propose, Vector v) {
+        protected void handlePropose(ACLMessage propose, Vector acceptances) {
+
             log.info(propose.getSender().getName() + " proposes $" + propose.getContent() + "\".");
+
+            Bid oldBid = bidsForRounds.get(roundId);
+
+                if (propose.getPerformative() == ACLMessage.PROPOSE) {
+                    BigInteger proposal = new BigInteger(propose.getContent());
+                    ACLMessage reply = propose.createReply();
+
+                    if(quantityToSell.compareTo(oldBid.getQuantity()) >= 0) {
+                        try {
+                            Thread.sleep(10000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    if (quantityToSell.compareTo(oldBid.getQuantity()) >= 0 && proposal.compareTo(oldBid.getPrice()) <= 0) {
+                        quantityToSell = quantityToSell.subtract(proposal);
+                        reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+                        Bid newBid = new Bid(proposal, oldBid.getQuantity());
+                        reply.setContent(getBiddersAddressFromWalletFilePath() + "|" + newBid.getPrice() + "|" + newBid.getQuantity());
+                    } else {
+                        reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
+                        log.info(getAID().getName() + " rejected proposal, because it was too low OR sold");
+                    }
+                    acceptances.addElement(reply);
+                }
+
         }
 
         protected void handleRefuse(ACLMessage refuse) {
             globalResponses++;
-            log.info(refuse.getSender().getName() + " has rejected the proposal.");
+            log.info(refuse.getSender().getName() + " has refused the proposal.");
+            if (refuse.getContent() != null) {
+                BigInteger quantityNotSold = new BigInteger(refuse.getContent());
+                quantityToSell = quantityToSell.subtract(quantityNotSold);
+            }
             helper.removeReceiverAgent(refuse.getSender(), refuse);
         }
 
@@ -216,154 +251,14 @@ public class BidderAgent extends Agent {
             log.info(getAID().getName() + " got confirmation for the offer");
         }
 
+
         protected void handleAllResponses(Vector responses, Vector acceptances) {
             int agentsLeft = responses.size() - globalResponses;
             globalResponses = 0;
 
             log.info(getAID().getName() + " got " + agentsLeft + " responses.");
 
-            if (agentsLeft == 0) {
-                return;
-            }
-
-            Bid oldBid = bidsForRounds.get(roundId);
-            BigInteger bestPriceOffer = oldBid.getPrice();
-
-
-            // todo: it might seem that we only need the bestpriceoffer, however
-            // todo: it's difficult to get the replies that we should reply to (only the ones that did PROPOSE)
-            // todo: otherwise
-
-            Enumeration<?> receivedResponses = responses.elements();
-            ACLMessage replyWithBestOffer = null;
-            while (receivedResponses.hasMoreElements()) {
-                ACLMessage msg = (ACLMessage) receivedResponses.nextElement();
-                if (msg.getPerformative() == ACLMessage.PROPOSE) {
-                    BigInteger proposal = new BigInteger(msg.getContent());
-
-                    ACLMessage reply = msg.createReply();
-                    reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
-                    if (proposal.compareTo(bestPriceOffer) <= 0) {
-                        bestPriceOffer = proposal;
-                        replyWithBestOffer = reply;
-                    }
-                    acceptances.addElement(reply);
-                }
-            }
-            Bid newBid = new Bid(bestPriceOffer, oldBid.getQuantity());
-            if (replyWithBestOffer != null) {
-                replyWithBestOffer.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-                replyWithBestOffer.setContent(getBiddersAddressFromWalletFilePath() + "|" + newBid.getPrice() + "|" + newBid.getQuantity());
-            }
         }
-
-//            if (agentsLeft > 1 && cfps.size() > 0) {
-//                bidsForRounds.put(roundId, newBid);
-//
-//                boolean offersAreEqual = checkIfOffersAreEqual(responses);
-//                if (!offersAreEqual) {
-//                    log.info(getAID().getName() + " will reject all but one offer, since they have received two or more offers of equal value");
-//                    setRepliesAcceptingBiggestBid(newBid, cfps, replies);
-//                    newIteration(cfps);
-//                } else {
-//                    log.info(getAID().getName() + " will reject all but one offer, since they have received two or more offers of equal value");
-//                    setRepliesAcceptingJustOne(newBid, cfps, replies);
-//                    newIteration(cfps);
-//                }
-//
-//            } else if (agentsLeft == 1 && cfps.size() > 0) {
-//                if (newBid.getPrice().compareTo(bidsForRounds.get(roundId).getPrice()) >= 0) {
-//                    ACLMessage reply;
-//                    log.info(getAID().getName()
-//                            + " will accept the price offered that is higher or equal to the ones received before");
-//                    bidsForRounds.put(roundId, newBid);
-//
-//                    reply = replies.get(0);
-//                    reply.setContent(getBiddersAddressFromWalletFilePath() + "|" + newBid.getPrice() + "|" + newBid.getQuantity());
-//                    reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-//                    cfps.set(0, replies.get(0));
-//                    newIteration(cfps);
-//                } else {
-//                    ACLMessage reply;
-//                    log.info(getAID().getName() + " refused offer with price : "
-//                            + bidsForRounds.get(roundId).getPrice() + " because they were expecting "
-//                            + newBid.getPrice() + " (an offer they previously received from another party)");
-//                    reply = replies.get(0);
-//                    reply.setContent(getBiddersAddressFromWalletFilePath() + "|" + newBid.getPrice() + "|" + newBid.getQuantity());
-//                    reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
-//                    cfps.set(0, replies.get(0));
-//                    newIteration(cfps);
-//                }
-//
-//            } else {
-//                log.error("cfps size is 0");
-//            }
-//        }
-
-//        private boolean checkIfOffersAreEqual(Vector responses) {
-//            Enumeration<?> receivedResponses2 = responses.elements();
-//
-//            BigDecimal bestOffer = BigDecimal.ZERO;
-//            if (receivedResponses2.hasMoreElements()) {
-//                bestOffer = new BigDecimal(((ACLMessage) receivedResponses2.nextElement()).getContent());
-//            }
-//
-//            boolean offersAreEqual = false;
-//            while (receivedResponses2.hasMoreElements()) {
-//                ACLMessage msg = (ACLMessage) receivedResponses2.nextElement();
-//                if (msg.getPerformative() == ACLMessage.PROPOSE) {
-//                    BigDecimal proposal = new BigDecimal(msg.getContent());
-//                    offersAreEqual = proposal.compareTo(bestOffer) == 0;
-//                }
-//            }
-//            return offersAreEqual;
-//        }
-//
-//        private void setRepliesAcceptingBiggestBid(Bid newBid, Vector<ACLMessage> cfps, ArrayList<ACLMessage> replies) {
-//            Integer bestBuyerIndex = 0;
-//            BigDecimal maxBid = BigDecimal.ZERO;
-//            for (int buyerIndex = 0; buyerIndex < replies.size(); buyerIndex++) {
-//                ACLMessage replyToBuyer = replies.get(buyerIndex);
-//
-//                if(getPriceFromContent(replyToBuyer.getContent()).compareTo(maxBid) > 0) {
-//                    bestBuyerIndex = buyerIndex;
-//                }
-//
-//                replyToBuyer.setPerformative(ACLMessage.REJECT_PROPOSAL);
-//
-//                cfps.set(buyerIndex, replyToBuyer);
-//            }
-//
-//
-//            ACLMessage replyToMaxBid = cfps.get(bestBuyerIndex);
-//            replyToMaxBid
-//                    .setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-//            replyToMaxBid
-//                    .setContent(getBiddersAddressFromWalletFilePath() + "|" + newBid.getPrice() + "|" + newBid.getQuantity());
-//        }
-//
-//        private BigDecimal getPriceFromContent(String content) {
-//            return new BigDecimal(
-//                    content.substring(content.indexOf("|") + 1,
-//                            content.lastIndexOf("|")));
-//        }
-//
-//        private void setRepliesAcceptingJustOne(Bid newBid, Vector<ACLMessage> cfps, ArrayList<ACLMessage> replies) {
-//            for (int replyToBuyerIndex = 0; replyToBuyerIndex < replies.size(); replyToBuyerIndex++) {
-//                ACLMessage replyToBuyer = replies.get(replyToBuyerIndex);
-//
-//                if (replyToBuyerIndex == 0) {
-//                    replyToBuyer
-//                            .setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-//                    replyToBuyer
-//                            .setContent(getBiddersAddressFromWalletFilePath() + "|" + newBid.getPrice() + "|" + newBid.getQuantity());
-//                } else {
-//                    replyToBuyer.setPerformative(ACLMessage.REJECT_PROPOSAL);
-//                }
-//                cfps.set(replyToBuyerIndex, replyToBuyer);
-//            }
-//        }
-//
     }
 
 }
