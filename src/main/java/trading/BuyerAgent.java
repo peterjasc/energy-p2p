@@ -206,13 +206,12 @@ public class BuyerAgent extends Agent {
                                         String roundId, String contractId,
                                         String bidderAddress, String quantity, String price) {
             try {
-                log.info("Value stored in remote smart contract: " + smartContract.addContract(
+                smartContract.addContract(
                         new BigInteger(roundId, 10),
                         new BigInteger(contractId, 10),
                         bidderAddress,
                         new BigInteger(quantity, 10),
-                        new BigInteger(price, 10)
-                ).send());
+                        new BigInteger(price, 10)).sendAsync();
             } catch (Exception e) {
                 e.printStackTrace();
             }

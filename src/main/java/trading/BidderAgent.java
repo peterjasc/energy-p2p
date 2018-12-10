@@ -208,13 +208,6 @@ public class BidderAgent extends Agent {
                     BigInteger proposal = new BigInteger(propose.getContent());
                     ACLMessage reply = propose.createReply();
 
-                    if(quantityToSell.compareTo(oldBid.getQuantity()) >= 0) {
-                        try {
-                            Thread.sleep(10000);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
 
                     if (quantityToSell.compareTo(oldBid.getQuantity()) >= 0 && proposal.compareTo(oldBid.getPrice()) <= 0) {
                         quantityToSell = quantityToSell.subtract(proposal);
