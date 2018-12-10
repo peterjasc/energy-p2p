@@ -40,22 +40,22 @@ public class Simulation implements Serializable {
 
         BuyerAgent buyerAgent = new BuyerAgent();
         agents.add(TradeAgentFactory.createTradeAgent("buyer1",buyerAgent, containerController,
-                "20.0", "15","14","UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe"));
+                "20.0", "5","15","UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe"));
 
         BuyerAgent buyerAgent2 = new BuyerAgent();
 
         agents.add(TradeAgentFactory.createTradeAgent("buyer2",buyerAgent2, containerController,
-                "20", "15","14","UTC--2018-11-24T19-34-55.937279473Z--f70eb6650142417be6d4887acb4d132fb784f8b2"));
+                "20", "10","15","UTC--2018-11-24T19-34-55.937279473Z--f70eb6650142417be6d4887acb4d132fb784f8b2"));
 
         BidderAgent bidderAgent = new BidderAgent();
         agents.add(TradeAgentFactory.createTradeAgent("bidder1",bidderAgent, containerController,
-                "300", "15",
+                "300", "10",
                 WALLET_HOME +
                         "UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe"));
 
         BidderAgent bidderAgent2 = new BidderAgent();
         agents.add(TradeAgentFactory.createTradeAgent("bidder2",bidderAgent, containerController,
-                "300", "15",
+                "300", "20",
                 WALLET_HOME +
                         "UTC--2018-05-14T07-25-36.048259657Z--86d4f62e3053951089399ba3e8533b6f93498ae5"));
         return agents;

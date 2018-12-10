@@ -16,6 +16,7 @@ import smartcontract.app.generated.SmartContract;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 
 public class BuyerAgent extends Agent {
     private static final long serialVersionUID = 1L;
@@ -96,12 +97,17 @@ public class BuyerAgent extends Agent {
 
                     ACLMessage response = cfp.createReply();
 
-                    if (receivedOfferQuantity.compareTo(quantityToBuy) > 0) {
+                    if (receivedOfferQuantity.compareTo(quantityToBuy) < 0) {
                         log.info(getAID().getName() + " refused bid from " + cfp.getSender()
                                 + ". They wanted quantity of " + quantityToBuy
                                 + ", but were offered: " + receivedOfferQuantity);
                         response.setPerformative(ACLMessage.REFUSE);
                         return response;
+                    } else if (receivedOfferQuantity.compareTo(quantityToBuy) > 0) {
+                        BigDecimal biddersPriceToQuantityRatio
+                                = receivedOfferPrice.divide(new BigDecimal(receivedOfferQuantity), RoundingMode.HALF_UP);
+                        receivedOfferPrice = new BigDecimal(quantityToBuy).multiply(biddersPriceToQuantityRatio);
+                        receivedOfferQuantity = quantityToBuy;
                     }
 
                     BigDecimal buyersHighestPriceForOfferQuantity = buyersHighestPriceToQuantityRatio
@@ -114,7 +120,7 @@ public class BuyerAgent extends Agent {
 
                     if (buyersHighestPriceForOfferQuantity.compareTo(receivedOfferPrice) >= 0) {
                         response.setPerformative(ACLMessage.PROPOSE);
-                        response.setContent(String.valueOf(receivedOfferPrice));
+                        response.setContent(String.valueOf(receivedOfferPrice) + "|" + String.valueOf(receivedOfferQuantity));
 
                     } else {
                         log.info(getAID().getName() + " refused bid. Their highest price was " + buyersHighestPriceForOfferQuantity

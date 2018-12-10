@@ -1,18 +1,19 @@
 package trading;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
 public class Bid {
 
-    private BigInteger price;
+    private BigDecimal price;
     private BigInteger quantity;
 
-    public Bid(BigInteger price, BigInteger quantity) {
+    public Bid(BigDecimal price, BigInteger quantity) {
         this.price = price;
         this.quantity = quantity;
     }
 
-    public BigInteger getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
@@ -20,7 +21,7 @@ public class Bid {
         return quantity;
     }
 
-    public void setPrice(BigInteger price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
 
