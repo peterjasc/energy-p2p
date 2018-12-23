@@ -104,6 +104,9 @@ public class BuyerAgent extends Agent {
                         response.setPerformative(ACLMessage.REFUSE);
                         return response;
                     } else if (receivedOfferQuantity.compareTo(quantityToBuy) > 0) {
+                        log.info("receivedOfferQuantity" + receivedOfferQuantity);
+                        log.info("quantityToBuy" + quantityToBuy);
+
                         BigDecimal biddersPriceToQuantityRatio
                                 = receivedOfferPrice.divide(new BigDecimal(receivedOfferQuantity), RoundingMode.HALF_UP);
                         receivedOfferPrice = new BigDecimal(quantityToBuy).multiply(biddersPriceToQuantityRatio);
