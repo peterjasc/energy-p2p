@@ -24,6 +24,7 @@ public class BidderAgent extends Agent {
     private String walletFilePath = "";
     private BigInteger roundId = BigInteger.ZERO;
     private BigInteger quantityToSell = BigInteger.ZERO;
+    private BigDecimal priceToQuantityRatio = BigDecimal.ZERO;
     private HashMap<BigInteger, Bid> bidsForRounds = new HashMap<>();
     private DFHelper helper;
 
@@ -36,7 +37,7 @@ public class BidderAgent extends Agent {
         if (args != null && args.length == 3) {
 
 
-            String price = (String) args[0];
+            String priceToQuantity = (String) args[0];
             String quantity = (String) args[1];
             walletFilePath = (String) args[2];
             String biddersAddress = getBiddersAddressFromWalletFilePath();
@@ -44,16 +45,17 @@ public class BidderAgent extends Agent {
 
             roundId = findRoundIdFromLastBidEvent();
 
-            if (BigDecimalValidator.getInstance().validate(price) != null && NumberUtils.isDigits(quantity)) {
+            if (BigDecimalValidator.getInstance().validate(priceToQuantity) != null && NumberUtils.isDigits(quantity)) {
                 quantityToSell = new BigInteger(quantity);
+                priceToQuantityRatio = new BigDecimal(priceToQuantity);
 
-                Bid bid = new Bid(NumberUtils.createBigDecimal(price), NumberUtils.createBigInteger(quantity));
+                Bid bid = new Bid(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell)), quantityToSell);
 
                 Set<SmartContract.BidAcceptedEventResponse> logsForPenultimateRoundId
                         = getLogsForPenultimateRoundId(roundId);
                 log.info("current RoundId is " + roundId);
-                Bid maxGrossProfitFromPenultimateRound = getMaxGrossForBidSet(logsForPenultimateRoundId);
-                log.info("maxGrossProfitFromPenultimateRound is " + maxGrossProfitFromPenultimateRound);
+                Bid bestBidFromPenultimateRound = getBestBidFromBidSet(logsForPenultimateRoundId);
+                log.info("bestBidFromPenultimateRound is " + bestBidFromPenultimateRound);
 
                 List<SmartContract.BidAcceptedEventResponse> biddersAcceptedBidsInTheLastRound
                         = getBiddersBidsInTheLastRoundIfExist(logsForPenultimateRoundId, biddersAddress);
@@ -69,19 +71,15 @@ public class BidderAgent extends Agent {
                             .divide(new BigDecimal(quantity), RoundingMode.HALF_UP);
 
                     if (soldCapacityDividedByAvailableCapacity.compareTo(new BigDecimal("0.25")) <= 0) {
-                        BigDecimal priceMultipliedByDiscountValue
-                                = maxGrossProfitFromPenultimateRound.getPrice()
-                                .multiply(new BigDecimal(discountFactorB)).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
-                        bid.setPrice(priceMultipliedByDiscountValue);
+                        BigDecimal discountPrice = getDiscountPrice(bestBidFromPenultimateRound);
+                        bid.setPrice(discountPrice);
                     } else {
-                        bid.setPrice(maxGrossProfitFromPenultimateRound.getPrice());
+                        bid.setPrice(bestBidFromPenultimateRound.getPrice());
                     }
                 } else {
                     log.info("biddersAcceptedBidsInTheLastRound is empty");
-                    BigDecimal priceMultipliedByDiscountValue
-                            = maxGrossProfitFromPenultimateRound.getPrice()
-                            .multiply(new BigDecimal(discountFactorB)).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
-                    bid.setPrice(priceMultipliedByDiscountValue);
+                    BigDecimal discountPrice = getDiscountPrice(bestBidFromPenultimateRound);
+                    bid.setPrice(discountPrice);
                 }
 
                 bidsForRounds.put(roundId, bid);
@@ -105,6 +103,11 @@ public class BidderAgent extends Agent {
         addBehaviour(new CustomContractNetInitiator(this, null));
     }
 
+    private BigDecimal getDiscountPrice(Bid bestBidFromPenultimateRound) {
+        return bestBidFromPenultimateRound.getPrice()
+        .multiply(new BigDecimal(discountFactorB)).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
+    }
+
     private String getBiddersAddressFromWalletFilePath() {
         if (!walletFilePath.equals("")) {
             return walletFilePath.substring(walletFilePath.lastIndexOf("--") + 2);
@@ -125,7 +128,7 @@ public class BidderAgent extends Agent {
     }
 
     // todo: if we store bigdecimal as biginteger for quantity, then additional math would be needed
-    private Bid getMaxGrossForBidSet(Set<SmartContract.BidAcceptedEventResponse> bids) {
+    private Bid getBestBidFromBidSet(Set<SmartContract.BidAcceptedEventResponse> bids) {
         BigInteger maxGrossProfit = BigInteger.ZERO;
         Bid maxGrossProfitBid = new Bid(BigDecimal.ZERO, BigInteger.ZERO);
 
@@ -196,8 +199,6 @@ public class BidderAgent extends Agent {
 
             log.info(propose.getSender().getName() + " proposes $" + propose.getContent() + "\".");
 
-            Bid oldBid = bidsForRounds.get(roundId);
-
             if (propose.getPerformative() == ACLMessage.PROPOSE) {
                 BigDecimal proposedPrice = getPriceFromContent(propose.getContent());
                 BigInteger proposedQuantity = getQuantityFromContent(propose.getContent());
@@ -205,13 +206,14 @@ public class BidderAgent extends Agent {
                 ACLMessage reply = propose.createReply();
 
 
-                if (quantityToSell.compareTo(oldBid.getQuantity()) >= 0 && proposedPrice.compareTo(oldBid.getPrice()) <= 0) {
+                if (quantityToSell.compareTo(proposedQuantity) >= 0
+                        && proposedPrice.compareTo(priceToQuantityRatio.multiply(new BigDecimal(proposedQuantity))) >= 0) {
                     quantityToSell = quantityToSell.subtract(proposedQuantity);
                     reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
                     reply.setContent(getBiddersAddressFromWalletFilePath() + "|" + proposedPrice + "|" + proposedQuantity);
                 } else {
                     reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
-                    log.info(getAID().getName() + " rejected proposal, because it was too low OR sold");
+                    log.info(getAID().getName() + " rejected proposal, because it was too low OR not enough to sell");
                 }
                 acceptances.addElement(reply);
             }
