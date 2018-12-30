@@ -13,21 +13,32 @@ import org.apache.commons.validator.routines.BigDecimalValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import smartcontract.app.generated.SmartContract;
+import trading.cron.MyTask;
+import trading.cron.TaskedAgent;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.util.Set;
+import java.util.Timer;
 
-public class BuyerAgent extends Agent {
+public class BuyerAgent extends Agent implements TaskedAgent {
     private static final long serialVersionUID = 1L;
     private static final Logger log = LoggerFactory.getLogger(BuyerAgent.class);
 
     private BigDecimal buyersHighestPriceToQuantityRatio = BigDecimal.valueOf(20);
     private BigInteger quantityToBuy = BigInteger.ZERO;
-    private String userFilePath = "";
+    private String walletFilePath = "";
 
     private BigInteger roundId = BigInteger.ZERO;
 
+    public BigInteger getRoundID() {
+        return this.roundId;
+    }
+
+    public void setRoundID(BigInteger roundID) {
+        this.roundId = roundID;
+    }
 
     protected void setup() {
         DFHelper helper = DFHelper.getInstance();
@@ -41,7 +52,7 @@ public class BuyerAgent extends Agent {
             String ratio = (String) args[0];
             String quantity = (String) args[1];
             String roundIdString = (String) args[2];
-            userFilePath = (String) args[3];
+            walletFilePath = (String) args[3];
 
             if (BigDecimalValidator.getInstance().validate(ratio) != null && NumberUtils.isDigits(quantity)
                     && NumberUtils.isDigits(roundIdString)) {
@@ -59,6 +70,13 @@ public class BuyerAgent extends Agent {
             doDelete();
         }
 
+        Timer t = new Timer();
+        MyTask mTask = new MyTask(this);
+        t.scheduleAtFixedRate(mTask, 0, 20000);
+
+    }
+
+    public void doInteractionBehaviour() {
         MessageTemplate template = getInteractionProtocolBehaviourTemplate();
         addBehaviour(new CustomContractNetResponderDispatcher(this, template));
     }
@@ -68,6 +86,17 @@ public class BuyerAgent extends Agent {
         return MessageTemplate.and(MessageTemplate.MatchProtocol(IP),
                 MessageTemplate.MatchPerformative(ACLMessage.CFP));
     }
+
+    private ContractLoader getContractLoaderForThisAgent() {
+        return new ContractLoader("password", walletFilePath);
+    }
+
+    public Set<SmartContract.BidAcceptedEventResponse> getLogsForPreviousRoundId(BigInteger roundId) {
+        ContractLoader contractLoader = getContractLoaderForThisAgent();
+        SmartContract smartContract = contractLoader.loadContract();
+        return contractLoader.getLogsForRoundId(roundId.subtract(BigInteger.ONE), smartContract);
+    }
+
 
     private class CustomContractNetResponderDispatcher extends SSResponderDispatcher {
         private static final long serialVersionUID = 1L;
@@ -89,7 +118,7 @@ public class BuyerAgent extends Agent {
 
                     try {
                         String receivedContent = cfp.getContent();
-                        receivedOfferPrice =  getPriceFromContent(receivedContent);
+                        receivedOfferPrice = getPriceFromContent(receivedContent);
                         receivedOfferQuantity = getQuantityFromContent(receivedContent);
                     } catch (Exception e) {
                         log.error(getAID().getName() + " couldn't read the price and/or quantity.");
@@ -104,9 +133,6 @@ public class BuyerAgent extends Agent {
                         response.setPerformative(ACLMessage.REFUSE);
                         return response;
                     } else if (receivedOfferQuantity.compareTo(quantityToBuy) > 0) {
-                        log.info("receivedOfferQuantity" + receivedOfferQuantity);
-                        log.info("quantityToBuy" + quantityToBuy);
-
                         BigDecimal biddersPriceToQuantityRatio
                                 = receivedOfferPrice.divide(new BigDecimal(receivedOfferQuantity), RoundingMode.HALF_UP);
                         receivedOfferPrice = new BigDecimal(quantityToBuy).multiply(biddersPriceToQuantityRatio);
@@ -118,7 +144,7 @@ public class BuyerAgent extends Agent {
 
                     // avoid using the scientific notation, eg 3E+2, to avoid comparision issues
                     if (buyersHighestPriceForOfferQuantity.scale() < 0) {
-                        buyersHighestPriceForOfferQuantity = buyersHighestPriceForOfferQuantity.setScale(0,BigDecimal.ROUND_HALF_UP);
+                        buyersHighestPriceForOfferQuantity = buyersHighestPriceForOfferQuantity.setScale(0, BigDecimal.ROUND_HALF_UP);
                     }
 
                     if (buyersHighestPriceForOfferQuantity.compareTo(receivedOfferPrice) >= 0) {
@@ -158,7 +184,7 @@ public class BuyerAgent extends Agent {
                                 + accept.getSender().getName() + ", and will send $" + payment + " for " + quantity + " Wh.");
 
                         ContractLoader contractLoader = new ContractLoader("password",
-                                "/home/peter/Documents/energy-p2p/private-testnet/keystore/" + userFilePath);
+                                walletFilePath);
                         SmartContract smartContract = contractLoader.loadContract();
 
                         addContractToChain(smartContract, roundId.toString(), "1000",
