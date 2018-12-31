@@ -91,10 +91,10 @@ public class BuyerAgent extends Agent implements TaskedAgent {
         return new ContractLoader("password", walletFilePath);
     }
 
-    public Set<SmartContract.BidAcceptedEventResponse> getLogsForPreviousRoundId(BigInteger roundId) {
+    public Set<SmartContract.BidAcceptedEventResponse> getLogsForPreviousRoundId(BigInteger currentRoundId) {
         ContractLoader contractLoader = getContractLoaderForThisAgent();
         SmartContract smartContract = contractLoader.loadContract();
-        return contractLoader.getLogsForRoundId(roundId.subtract(BigInteger.ONE), smartContract);
+        return contractLoader.getLogsForRoundId(currentRoundId.subtract(BigInteger.ONE), smartContract);
     }
 
 

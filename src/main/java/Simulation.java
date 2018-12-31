@@ -42,24 +42,24 @@ public class Simulation implements Serializable {
 
         BuyerAgent buyerAgent = new BuyerAgent();
         agents.add(TradeAgentFactory.createTradeAgent("buyer1", buyerAgent, containerController,
-                "20.0", "5", "15", WALLET_HOME + "UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe"));
+                "20.0", "5", "4", WALLET_HOME + "UTC--2018-12-31T14-04-41.979553267Z--34c2c13ecaf560f284adb20a002c01e31a84646a"));
 
-        BuyerAgent buyerAgent2 = new BuyerAgent();
-
-        agents.add(TradeAgentFactory.createTradeAgent("buyer2", buyerAgent2, containerController,
-                "20", "10", "15", WALLET_HOME + "UTC--2018-11-24T19-34-55.937279473Z--f70eb6650142417be6d4887acb4d132fb784f8b2"));
+//        BuyerAgent buyerAgent2 = new BuyerAgent();
+//
+//        agents.add(TradeAgentFactory.createTradeAgent("buyer2", buyerAgent2, containerController,
+//                "20", "10", "4", WALLET_HOME + "UTC--2018-11-24T19-34-55.937279473Z--f70eb6650142417be6d4887acb4d132fb784f8b2"));
 
         BidderAgent bidderAgent = new BidderAgent();
         agents.add(TradeAgentFactory.createTradeAgent("bidder1", bidderAgent, containerController,
                 "20.0", "10",
                 WALLET_HOME +
-                        "UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe"));
+                        "UTC--2018-12-31T16-21-39.797496276Z--0d2914cd3618ba87836d51716f74cd52cb9f251a"));
 
-        BidderAgent bidderAgent2 = new BidderAgent();
-        agents.add(TradeAgentFactory.createTradeAgent("bidder2", bidderAgent2, containerController,
-                "20", "20",
-                WALLET_HOME +
-                        "UTC--2018-05-14T07-25-36.048259657Z--86d4f62e3053951089399ba3e8533b6f93498ae5"));
+//        BidderAgent bidderAgent2 = new BidderAgent();
+//        agents.add(TradeAgentFactory.createTradeAgent("bidder2", bidderAgent2, containerController,
+//                "20", "20",
+//                WALLET_HOME +
+//                        "UTC--2018-05-14T07-25-36.048259657Z--86d4f62e3053951089399ba3e8533b6f93498ae5"));
         return agents;
     }
 

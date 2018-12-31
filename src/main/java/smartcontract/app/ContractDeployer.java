@@ -20,8 +20,8 @@ public class ContractDeployer {
 
     private void run() throws Exception {
         ContractLoader contractLoader = new ContractLoader("password",
-                "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-04-04T09-17-25.118212336Z--9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe");
-
+                "/home/peter/Documents/energy-p2p/private-testnet/keystore/UTC--2018-12-31T14-04-41.979553267Z--34c2c13ecaf560f284adb20a002c01e31a84646a");
+//      DEPLOY
 //        log.info("Deploying smart contract (remember to start mining!!!)");
 //        SmartContract contract = contractLoader.deployContract();
 //        System.exit(0);
@@ -29,7 +29,9 @@ public class ContractDeployer {
         SmartContract contract = contractLoader.loadContract();
         log.info("Contract is valid: " + contract.isValid());
 
+//      TEST SENDINGContractLoader
 //     event BidAccepted(uint indexed roundId, uint indexed contractId, address indexed bidder, uint quantity, uint price, uint time);
+
 //        log.info("Value stored in remote smart contract: " + contract.addContract(
 //                new BigInteger("3", 10),
 //                new BigInteger("1", 10),

@@ -54,7 +54,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
             String biddersAddress = getBiddersAddressFromWalletFilePath();
             log.debug("biddersAddress is " + biddersAddress);
 
-            roundId = findRoundIdFromLastBidEvent();
+            roundId = findRoundIdFromLastBidEvent().add(BigInteger.ONE);
 
             if (BigDecimalValidator.getInstance().validate(priceToQuantity) != null && NumberUtils.isDigits(quantity)) {
                 quantityToSell = new BigInteger(quantity);
@@ -129,10 +129,10 @@ public class BidderAgent extends Agent implements TaskedAgent {
         addBehaviour(new CustomContractNetInitiator(this, null));
     }
 
-    public Set<SmartContract.BidAcceptedEventResponse> getLogsForPreviousRoundId(BigInteger roundId) {
+    public Set<SmartContract.BidAcceptedEventResponse> getLogsForPreviousRoundId(BigInteger currentRoundId) {
         ContractLoader contractLoader = getContractLoaderForThisAgent();
         SmartContract smartContract = contractLoader.loadContract();
-        return contractLoader.getLogsForRoundId(roundId.subtract(BigInteger.ONE), smartContract);
+        return contractLoader.getLogsForRoundId(currentRoundId.subtract(BigInteger.ONE), smartContract);
     }
 
     private BigInteger findRoundIdFromLastBidEvent() {
