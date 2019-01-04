@@ -17,7 +17,6 @@ import java.util.Objects;
 public class Simulation implements Serializable {
 
     public static final String WALLET_HOME = "/home/peter/Documents/energy-p2p/private-testnet/keystore/";
-    private ArrayList<Trader> agents;
     private transient ContainerController container;
 
     private static final Logger log = LoggerFactory.getLogger(Simulation.class);
@@ -35,36 +34,35 @@ public class Simulation implements Serializable {
 
         Simulation simulation = new Simulation();
         simulation.container = jadeRuntime.createMainContainer(profile);
-        simulation.agents = simulation.createAgents(simulation.container);
-
-        simulation.startAll();
-
+        simulation.createAgents(simulation.container);
     }
 
-    private ArrayList<Trader> createAgents(ContainerController containerController) throws StaleProxyException {
-        ArrayList<Trader> agents = new ArrayList<>();
+    private void createAgents(ContainerController containerController) throws StaleProxyException {
+        int round_id = 6;
+        int wallet_id = 0;
+        int buyer = 0;
+        int bidder = 0;
 
-        BuyerAgent buyerAgent = new BuyerAgent();
-        agents.add(TradeAgentFactory.createTradeAgent("buyer1", buyerAgent, containerController,
-                "20.0", "5", "6", WALLET_HOME + wallets.get(1)));
+        for (int i = 0; i < 1; i++) {
+            ArrayList<Trader> agents = new ArrayList<>();
 
-//        BuyerAgent buyerAgent2 = new BuyerAgent();
-//
-//        agents.add(TradeAgentFactory.createTradeAgent("buyer2", buyerAgent2, containerController,
-//                "20", "10", "4", WALLET_HOME + "UTC--2018-11-24T19-34-55.937279473Z--f70eb6650142417be6d4887acb4d132fb784f8b2"));
+            for (; buyer % 10 == 0; buyer++) {
+                wallet_id += 1;
+                BuyerAgent buyerAgent = new BuyerAgent();
+                agents.add(TradeAgentFactory.createTradeAgent("buyer"+buyer, buyerAgent, containerController,
+                        "20.0", "10", Integer.toString(round_id), WALLET_HOME + wallets.get(wallet_id)));
+            }
 
-        BidderAgent bidderAgent = new BidderAgent();
-        agents.add(TradeAgentFactory.createTradeAgent("bidder1", bidderAgent, containerController,
-                "20.0", "10",
-                WALLET_HOME +
-                        "UTC--2018-12-31T16-21-39.797496276Z--0d2914cd3618ba87836d51716f74cd52cb9f251a"));
+            for (; bidder % 10 == 0; bidder++) {
+                wallet_id += 1;
+                BidderAgent bidderAgent = new BidderAgent();
+                agents.add(TradeAgentFactory.createTradeAgent("bidder"+bidder, bidderAgent, containerController,
+                        "20.0", "10",
+                        WALLET_HOME + wallets.get(wallet_id)));
+            }
 
-//        BidderAgent bidderAgent2 = new BidderAgent();
-//        agents.add(TradeAgentFactory.createTradeAgent("bidder2", bidderAgent2, containerController,
-//                "20", "20",
-//                WALLET_HOME +
-//                        "UTC--2018-05-14T07-25-36.048259657Z--86d4f62e3053951089399ba3e8533b6f93498ae5"));
-        return agents;
+            startAll(agents);
+        }
     }
 
     public ArrayList<String> getWallets() {
@@ -72,18 +70,20 @@ public class Simulation implements Serializable {
         ArrayList<String> wallets = new ArrayList<>();
         for (final File fileEntry : Objects.requireNonNull(dir.listFiles())) {
             wallets.add(fileEntry.getName());
+            log.info(fileEntry.getName());
+            System.exit(0);
         }
         return wallets;
     }
 
-    public void startAll() throws StaleProxyException {
+    public void startAll(ArrayList<Trader> agents) throws StaleProxyException {
         for (Trader trader : agents) {
             log.debug("Starting up " + trader.getNickname());
             trader.start();
         }
     }
 
-    public void killAll() throws StaleProxyException {
+    public void killAll(ArrayList<Trader> agents) throws StaleProxyException {
         for (Trader trader : agents) {
             trader.kill();
         }

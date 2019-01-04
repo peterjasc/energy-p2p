@@ -40,6 +40,10 @@ public class BuyerAgent extends Agent implements TaskedAgent {
         this.roundId = roundID;
     }
 
+    public BigInteger getQuantity() {
+        return quantityToBuy;
+    }
+
     protected void setup() {
         DFHelper helper = DFHelper.getInstance();
         ServiceDescription serviceDescription = new ServiceDescription();

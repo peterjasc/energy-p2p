@@ -41,6 +41,10 @@ public class BidderAgent extends Agent implements TaskedAgent {
         this.roundId = roundID;
     }
 
+    public BigInteger getQuantity() {
+        return quantityToSell;
+    }
+
     // todo: shouldn't call doInteractionBehaviour, if roundId from blockchain is not correct
     protected void setup() {
         helper = DFHelper.getInstance();

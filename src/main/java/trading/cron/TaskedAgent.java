@@ -10,4 +10,5 @@ public interface TaskedAgent {
     BigInteger getRoundID();
     void setRoundID(BigInteger roundID);
     void doInteractionBehaviour();
+    BigInteger getQuantity();
 }
