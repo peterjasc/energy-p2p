@@ -41,6 +41,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
         this.roundId = roundID;
     }
 
+    // todo: shouldn't call doInteractionBehaviour, if roundId from blockchain is not correct
     protected void setup() {
         helper = DFHelper.getInstance();
 
@@ -119,7 +120,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
             log.error("Terminating: " + this.getAID().getName());
             doDelete();
         }
-
+        doInteractionBehaviour();
         Timer t = new Timer();
         MyTask mTask = new MyTask(this);
         t.scheduleAtFixedRate(mTask, 0, 21000);
@@ -211,7 +212,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
                 message.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
                 message.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
 
-                Bid bid = bidsForRounds.get(roundId.subtract(BigInteger.ONE));
+                Bid bid = bidsForRounds.get(roundId);
                 message.setContent(getBiddersAddressFromWalletFilePath() + "|" + bid.getPrice() + "|" + bid.getQuantity());
 
                 messages.addElement(message);

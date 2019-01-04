@@ -70,6 +70,7 @@ public class BuyerAgent extends Agent implements TaskedAgent {
             doDelete();
         }
 
+        doInteractionBehaviour();
         Timer t = new Timer();
         MyTask mTask = new MyTask(this);
         t.scheduleAtFixedRate(mTask, 0, 20000);
@@ -94,7 +95,7 @@ public class BuyerAgent extends Agent implements TaskedAgent {
     public Set<SmartContract.BidAcceptedEventResponse> getLogsForPreviousRoundId(BigInteger currentRoundId) {
         ContractLoader contractLoader = getContractLoaderForThisAgent();
         SmartContract smartContract = contractLoader.loadContract();
-        return contractLoader.getLogsForRoundId(currentRoundId.subtract(BigInteger.ONE), smartContract);
+        return contractLoader.getLogsForRoundId(currentRoundId, smartContract);
     }
 
 

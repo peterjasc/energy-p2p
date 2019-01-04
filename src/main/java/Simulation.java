@@ -9,8 +9,10 @@ import trading.BuyerAgent;
 import trading.TradeAgentFactory;
 import trading.Trader;
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class Simulation implements Serializable {
 
@@ -19,8 +21,10 @@ public class Simulation implements Serializable {
     private transient ContainerController container;
 
     private static final Logger log = LoggerFactory.getLogger(Simulation.class);
+    private ArrayList<String> wallets;
 
     private Simulation() {
+        wallets = getWallets();
     }
 
     public static void main(String[] args) throws StaleProxyException {
@@ -31,18 +35,18 @@ public class Simulation implements Serializable {
 
         Simulation simulation = new Simulation();
         simulation.container = jadeRuntime.createMainContainer(profile);
-        simulation.agents = createAgents(simulation.container);
+        simulation.agents = simulation.createAgents(simulation.container);
 
         simulation.startAll();
 
     }
 
-    private static ArrayList<Trader> createAgents(ContainerController containerController) throws StaleProxyException {
+    private ArrayList<Trader> createAgents(ContainerController containerController) throws StaleProxyException {
         ArrayList<Trader> agents = new ArrayList<>();
 
         BuyerAgent buyerAgent = new BuyerAgent();
         agents.add(TradeAgentFactory.createTradeAgent("buyer1", buyerAgent, containerController,
-                "20.0", "5", "4", WALLET_HOME + "UTC--2018-12-31T14-04-41.979553267Z--34c2c13ecaf560f284adb20a002c01e31a84646a"));
+                "20.0", "5", "6", WALLET_HOME + wallets.get(1)));
 
 //        BuyerAgent buyerAgent2 = new BuyerAgent();
 //
@@ -61,6 +65,15 @@ public class Simulation implements Serializable {
 //                WALLET_HOME +
 //                        "UTC--2018-05-14T07-25-36.048259657Z--86d4f62e3053951089399ba3e8533b6f93498ae5"));
         return agents;
+    }
+
+    public ArrayList<String> getWallets() {
+        File dir = new File(WALLET_HOME);
+        ArrayList<String> wallets = new ArrayList<>();
+        for (final File fileEntry : Objects.requireNonNull(dir.listFiles())) {
+            wallets.add(fileEntry.getName());
+        }
+        return wallets;
     }
 
     public void startAll() throws StaleProxyException {
