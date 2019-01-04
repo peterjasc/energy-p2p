@@ -70,8 +70,6 @@ public class Simulation implements Serializable {
         ArrayList<String> wallets = new ArrayList<>();
         for (final File fileEntry : Objects.requireNonNull(dir.listFiles())) {
             wallets.add(fileEntry.getName());
-            log.info(fileEntry.getName());
-            System.exit(0);
         }
         return wallets;
     }

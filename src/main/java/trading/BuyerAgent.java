@@ -184,7 +184,7 @@ public class BuyerAgent extends Agent implements TaskedAgent {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-
+                        log.debug("walletfile path " + walletFilePath + "\n");
                         log.info(getAID().getName() + " has accepted the offer from "
                                 + accept.getSender().getName() + ", and will send $" + payment + " for " + quantity + " Wh.");
 
@@ -217,7 +217,7 @@ public class BuyerAgent extends Agent implements TaskedAgent {
 
         private ACLMessage refuseUnnecessaryBid(ACLMessage msg) {
             if (quantityToBuy.compareTo(BigInteger.ZERO) == 0) {
-                log.info(getAID().getName()
+                log.debug(getAID().getName()
                         + " has bought all the energy they need and rejects the proposal from " + msg.getSender());
                 ACLMessage exitResponse = msg.createReply();
                 exitResponse.setPerformative(ACLMessage.REFUSE);

@@ -71,7 +71,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
                         = getLogsForPreviousRoundId(roundId);
                 log.debug("current RoundId is " + roundId);
                 Bid bestBidFromPenultimateRound = getBestBidFromBidSet(logsForPenultimateRoundId);
-                log.info("bestBidFromPenultimateRound is " + bestBidFromPenultimateRound);
+                log.debug("bestBidFromPenultimateRound is " + bestBidFromPenultimateRound);
 
                 List<SmartContract.BidAcceptedEventResponse> biddersAcceptedBidsInTheLastRound
                         = getBiddersBidsInTheLastRoundIfExist(logsForPenultimateRoundId, biddersAddress);
@@ -99,7 +99,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
                         }
                     }
                 } else {
-                    log.info("biddersAcceptedBidsInTheLastRound is empty");
+                    log.debug("biddersAcceptedBidsInTheLastRound is empty");
                     BigDecimal discountPrice = getDiscountPrice(bestBidFromPenultimateRound);
                     if (discountPrice
                             .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell))) >= 0) {
@@ -108,7 +108,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
                 }
 
                 bidsForRounds.put(roundId, bid);
-                log.info(getAID().getName() + " has issued a new offer" + bid + ".\n");
+                log.debug(getAID().getName() + " has issued a new offer" + bid + ".\n");
 
                 ServiceDescription serviceDescription = new ServiceDescription();
                 serviceDescription.setType("Bidder");
@@ -209,7 +209,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
             }
 
             if (agents.length == 0) {
-                log.info("No agents matching the type were found. Terminating: "
+                log.debug("No agents matching the type were found. Terminating: "
                         + getAgent().getAID().getName());
                 helper.killAgent(getAgent());
             } else {
@@ -227,7 +227,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
 
         protected void handlePropose(ACLMessage propose, Vector acceptances) {
 
-            log.info(propose.getSender().getName() + " proposes $" + propose.getContent() + "\".");
+            log.debug(propose.getSender().getName() + " proposes $" + propose.getContent() + "\".");
 
             if (propose.getPerformative() == ACLMessage.PROPOSE) {
                 BigDecimal proposedPrice = getPriceFromContent(propose.getContent());
@@ -255,7 +255,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
 
         protected void handleRefuse(ACLMessage refuse) {
             globalResponses++;
-            log.info(refuse.getSender().getName() + " has refused the proposal.");
+            log.debug(refuse.getSender().getName() + " has refused the proposal.");
             if (refuse.getContent() != null) {
                 BigInteger quantityNotSold = new BigInteger(refuse.getContent());
                 quantityToSell = quantityToSell.add(quantityNotSold);
@@ -279,7 +279,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
             int agentsLeft = responses.size() - globalResponses;
             globalResponses = 0;
 
-            log.info(getAID().getName() + " got " + agentsLeft + " responses.");
+            log.debug(getAID().getName() + " got " + agentsLeft + " responses.");
 
         }
 

@@ -19,7 +19,7 @@ public class MyTask extends TimerTask {
 
     @Override
     public void run() {
-        log.info(((Agent) agent).getName() + " string for " + agent.getRoundID().toString());
+        log.debug(((Agent) agent).getName() + " string for " + agent.getRoundID().toString());
 
         if(agent.getQuantity().compareTo(BigInteger.ZERO) == 0) {
             DFHelper helper = DFHelper.getInstance();
@@ -31,7 +31,7 @@ public class MyTask extends TimerTask {
             agent.doInteractionBehaviour();
             agent.setRoundID(agent.getRoundID().add(BigInteger.ONE));
         } else {
-            log.info("No logs for current round found");
+            log.debug("No logs for current round found");
         }
     }
 

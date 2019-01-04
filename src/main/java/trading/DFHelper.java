@@ -39,7 +39,7 @@ public final class DFHelper extends Agent {
 		try {
 			registeredAgents.add(agent);
 			DFService.register(agent, dfAgentDescription);
-			log.info(agent.getName() + " registered as: " + serviceDescription.getType() + ".");
+			log.debug(agent.getName() + " registered as: " + serviceDescription.getType() + ".");
 		} catch (FIPAException e) {
 			e.printStackTrace();
 		}
@@ -75,13 +75,13 @@ public final class DFHelper extends Agent {
 	 */
 	public void removeReceiverAgent(AID agent, ACLMessage msg) {
 		respondersRemaining--;
-		log.info(agent.getName() + " was removed from receivers.");
+		log.debug(agent.getName() + " was removed from receivers.");
 		msg.removeReceiver(agent);
 	}
 
 	public void killAgent(Agent agent) {
 		try {
-			log.info(agent.getAID().getName() + " left.");
+			log.debug(agent.getAID().getName() + " left.");
 			DFService.deregister(agent);
 			agent.doDelete();
 		} catch (Exception e) {
