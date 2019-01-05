@@ -8,6 +8,8 @@ import smartcontract.app.generated.SmartContract;
 import trading.ContractLoader;
 
 import java.math.BigInteger;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 
 public class ContractDeployer {
@@ -48,11 +50,11 @@ public class ContractDeployer {
                 DefaultBlockParameterName.fromString(DefaultBlockParameterName.LATEST.getValue())).subscribe(subscriber);
 
 // Get all the contracts from a specific round
-//
+
 //        SmartContract smartContract = contractLoader.loadContract();
-//        Set<SmartContract.BidAcceptedEventResponse> set
-//                = contractLoader.getLogsForRoundId(BigInteger.valueOf(4), smartContract);
-//        for (SmartContract.BidAcceptedEventResponse o : set) {
+//        List<SmartContract.BidAcceptedEventResponse> list
+//                = contractLoader.getLogsForRoundIdRange(BigInteger.valueOf(6), BigInteger.valueOf(6), smartContract);
+//        for (SmartContract.BidAcceptedEventResponse o : list) {
 //        log.info("\n");
 //        log.info("roundId " + o.roundId);
 //        log.info("contractId " + o.contractId);
