@@ -129,7 +129,35 @@ public class ContractLoader {
 
         return logsForAllBids.stream()
                 .filter(x -> x.roundId.compareTo(roundId) == 0)
+                .sorted(Comparator.comparing(o -> o.time))
                 .collect(Collectors.toSet());
+    }
+
+    public List<SmartContract.BidAcceptedEventResponse> getLogsForRoundIdRange(BigInteger min, BigInteger max, SmartContract smartContract) {
+        HashSet<SmartContract.BidAcceptedEventResponse> logsForAllBids = new HashSet<>();
+        List<EthLog.LogResult> logResults = getLogsForBidEvents();
+
+        for (EthLog.LogResult logResult : logResults) {
+            EthLog.LogObject logObject
+                    = (EthLog.LogObject) logResult.get();
+
+            Optional<TransactionReceipt> transactionReceipt = Optional.empty();
+            try {
+                transactionReceipt = web3j.ethGetTransactionReceipt(logObject.getTransactionHash()).send().getTransactionReceipt();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            List<SmartContract.BidAcceptedEventResponse> bidAcceptedEventResponses
+                    = smartContract.getBidAcceptedEvents(transactionReceipt.orElse(new TransactionReceipt()));
+
+            logsForAllBids.addAll(bidAcceptedEventResponses);
+        }
+
+        return logsForAllBids.stream()
+                .filter(x -> x.roundId.compareTo(min) >= 0 && x.roundId.compareTo(max) <= 0)
+                .sorted(Comparator.comparing(o -> o.time))
+                .collect(Collectors.toList());
     }
 
     BigInteger findRoundIdFromLastBidEvent(SmartContract smartContract) {
