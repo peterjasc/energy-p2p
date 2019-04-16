@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 public class BidderAgent extends Agent implements TaskedAgent {
@@ -32,6 +33,8 @@ public class BidderAgent extends Agent implements TaskedAgent {
     private BigInteger discountFactorB = BigInteger.valueOf(90);
 
     private BigInteger roundId = BigInteger.ZERO;
+
+    private static final Semaphore semaphore = new Semaphore(1, true);
 
     public BigInteger getRoundID() {
         return this.roundId;
@@ -50,22 +53,27 @@ public class BidderAgent extends Agent implements TaskedAgent {
         helper = DFHelper.getInstance();
 
         Object[] args = getArguments();
-        if (args != null && args.length == 3) {
+        if (args != null && args.length == 5) {
 
 
             String priceToQuantity = (String) args[0];
             String quantity = (String) args[1];
-            walletFilePath = (String) args[2];
+            String price = (String) args[2];
+            String roundIdString = (String) args[3];
+            walletFilePath = (String) args[4];
             String biddersAddress = getBiddersAddressFromWalletFilePath();
             log.debug("biddersAddress is " + biddersAddress);
 
-            roundId = findRoundIdFromLastBidEvent().add(BigInteger.ONE);
 
-            if (BigDecimalValidator.getInstance().validate(priceToQuantity) != null && NumberUtils.isDigits(quantity)) {
+            if (BigDecimalValidator.getInstance().validate(priceToQuantity) != null
+                    && NumberUtils.isDigits(price)
+                    && NumberUtils.isDigits(quantity)
+                    && NumberUtils.isDigits(roundIdString)) {
+                roundId = new BigInteger(roundIdString);
                 quantityToSell = new BigInteger(quantity);
                 priceToQuantityRatio = new BigDecimal(priceToQuantity);
 
-                Bid bid = new Bid(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell)), quantityToSell);
+                Bid bid = new Bid(new BigDecimal(price), quantityToSell);
 
                 Set<SmartContract.BidAcceptedEventResponse> logsForPenultimateRoundId
                         = getLogsForPreviousRoundId(roundId);
@@ -135,9 +143,17 @@ public class BidderAgent extends Agent implements TaskedAgent {
     }
 
     public Set<SmartContract.BidAcceptedEventResponse> getLogsForPreviousRoundId(BigInteger currentRoundId) {
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         ContractLoader contractLoader = getContractLoaderForThisAgent();
         SmartContract smartContract = contractLoader.loadContract();
-        return contractLoader.getLogsForRoundId(currentRoundId.subtract(BigInteger.ONE), smartContract);
+        Set<SmartContract.BidAcceptedEventResponse> logs
+                = contractLoader.getLogsForRoundId(currentRoundId.subtract(BigInteger.ONE), smartContract);
+        semaphore.release();
+        return logs;
     }
 
     private BigInteger findRoundIdFromLastBidEvent() {
@@ -285,8 +301,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
 
         private BigInteger getQuantityFromContent(String content) {
             return new BigInteger(
-                    content.substring(content.lastIndexOf("|") + 1,
-                            content.length()));
+                    content.substring(content.lastIndexOf("|") + 1));
         }
 
         private BigDecimal getPriceFromContent(String content) {

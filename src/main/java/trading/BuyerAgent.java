@@ -21,6 +21,7 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.Set;
 import java.util.Timer;
+import java.util.concurrent.Semaphore;
 
 public class BuyerAgent extends Agent implements TaskedAgent {
     private static final long serialVersionUID = 1L;
@@ -31,6 +32,8 @@ public class BuyerAgent extends Agent implements TaskedAgent {
     private String walletFilePath = "";
 
     private BigInteger roundId = BigInteger.ZERO;
+
+    private static final Semaphore semaphore = new Semaphore(1, true);
 
     public BigInteger getRoundID() {
         return this.roundId;
@@ -97,9 +100,18 @@ public class BuyerAgent extends Agent implements TaskedAgent {
     }
 
     public Set<SmartContract.BidAcceptedEventResponse> getLogsForPreviousRoundId(BigInteger currentRoundId) {
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         ContractLoader contractLoader = getContractLoaderForThisAgent();
         SmartContract smartContract = contractLoader.loadContract();
-        return contractLoader.getLogsForRoundId(currentRoundId, smartContract);
+        Set<SmartContract.BidAcceptedEventResponse> logs
+                = contractLoader.getLogsForRoundId(currentRoundId, smartContract);
+        semaphore.release();
+        return logs;
     }
 
 
@@ -188,13 +200,19 @@ public class BuyerAgent extends Agent implements TaskedAgent {
                         log.info(getAID().getName() + " has accepted the offer from "
                                 + accept.getSender().getName() + ", and will send $" + payment + " for " + quantity + " Wh.");
 
+
+                        try {
+                            semaphore.acquire();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                         ContractLoader contractLoader = new ContractLoader("password",
                                 walletFilePath);
                         SmartContract smartContract = contractLoader.loadContract();
 
                         addContractToChain(smartContract, roundId.toString(), "1000",
                                 biddersAddress, quantity.toString(), payment.toString());
-
+                        semaphore.release();
                         quantityToBuy = quantityToBuy.subtract(quantity);
 
                         ACLMessage inform = accept.createReply();
@@ -217,7 +235,7 @@ public class BuyerAgent extends Agent implements TaskedAgent {
 
         private ACLMessage refuseUnnecessaryBid(ACLMessage msg) {
             if (quantityToBuy.compareTo(BigInteger.ZERO) == 0) {
-                log.debug(getAID().getName()
+                log.info(getAID().getName()
                         + " has bought all the energy they need and rejects the proposal from " + msg.getSender());
                 ACLMessage exitResponse = msg.createReply();
                 exitResponse.setPerformative(ACLMessage.REFUSE);

@@ -129,7 +129,6 @@ public class ContractLoader {
 
         return logsForAllBids.stream()
                 .filter(x -> x.roundId.compareTo(roundId) == 0)
-                .sorted(Comparator.comparing(o -> o.time))
                 .collect(Collectors.toSet());
     }
 

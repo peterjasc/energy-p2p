@@ -3,7 +3,7 @@
 
 Running the node:
 
-`geth --datadir ~/Documents/energy-p2p/private-testnet/ --ipcpath geth.ipc --nodiscover --networkid 567345 --rpc --rpcaddr "localhost" --rpcport 8110 --rpcapi "db,eth,net,web3" --rpccorsdomain="localhost" --maxpeers 0 --verbosity 3 --pprof --pprofport 6110 console`
+`geth --datadir ~/Documents/energy-p2p/private-testnet/ --ipcpath geth.ipc --nodiscover --networkid 567345 --rpc --rpcaddr "localhost" --rpcport 8110 --rpcapi "db,eth,net,web3" --maxpeers 0 --verbosity 3 --pprof --pprofport 6110 console`
 
 
 Compiling code:
