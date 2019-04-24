@@ -20,7 +20,9 @@ Generating Java classes from .abi and .bin
 
 geth --datadir /home/peter/Documents/energy-p2p/private-testnet/ account list
 
-####account
+#### Sending ether from account
+
+WalletGenerator.go creates accounts and sends ether from coinbase to these accounts in order for the simulation to work. In essence, it automates the following logic:
 
 web3.personal.unlockAccount("0x9b538e4a5eba8ac0f83d6025cbbabdbd13a32bfe","password")
 
