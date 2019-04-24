@@ -56,22 +56,21 @@ public class BidderAgent extends Agent implements TaskedAgent {
         if (args != null && args.length == 5) {
 
 
-            String priceToQuantity = (String) args[0];
+            String ratio = (String) args[0];
             String quantity = (String) args[1];
             String price = (String) args[2];
             String roundIdString = (String) args[3];
             walletFilePath = (String) args[4];
             String biddersAddress = getBiddersAddressFromWalletFilePath();
-            log.debug("biddersAddress is " + biddersAddress);
 
 
-            if (BigDecimalValidator.getInstance().validate(priceToQuantity) != null
+            if (BigDecimalValidator.getInstance().validate(ratio) != null
                     && NumberUtils.isDigits(price)
                     && NumberUtils.isDigits(quantity)
                     && NumberUtils.isDigits(roundIdString)) {
                 roundId = new BigInteger(roundIdString);
                 quantityToSell = new BigInteger(quantity);
-                priceToQuantityRatio = new BigDecimal(priceToQuantity);
+                priceToQuantityRatio = new BigDecimal(ratio);
 
                 Bid bid = new Bid(new BigDecimal(price), quantityToSell);
 
@@ -85,7 +84,6 @@ public class BidderAgent extends Agent implements TaskedAgent {
                         = getBiddersBidsInTheLastRoundIfExist(logsForPenultimateRoundId, biddersAddress);
 
                 if (!biddersAcceptedBidsInTheLastRound.isEmpty()) {
-                    log.debug("biddersAcceptedBidsInTheLastRound is not empty");
                     BigInteger soldCapacityInTheLastRound = BigInteger.ZERO;
                     for (SmartContract.BidAcceptedEventResponse biddersAcceptedBids : biddersAcceptedBidsInTheLastRound) {
                         soldCapacityInTheLastRound = soldCapacityInTheLastRound.add(biddersAcceptedBids.quantity);
@@ -107,7 +105,6 @@ public class BidderAgent extends Agent implements TaskedAgent {
                         }
                     }
                 } else {
-                    log.debug("biddersAcceptedBidsInTheLastRound is empty");
                     BigDecimal discountPrice = getDiscountPrice(bestBidFromPenultimateRound);
                     if (discountPrice
                             .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell))) >= 0) {
@@ -116,7 +113,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
                 }
 
                 bidsForRounds.put(roundId, bid);
-                log.debug(getAID().getName() + " has issued a new offer" + bid + ".\n");
+                log.info(getAID().getName() + " has issued a new offer" + bid + ".\n");
 
                 ServiceDescription serviceDescription = new ServiceDescription();
                 serviceDescription.setType("Bidder");
@@ -146,7 +143,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
         try {
             semaphore.acquire();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.error(this.getAID().getName() + " was interrupted while waiting for semaphore");
         }
         ContractLoader contractLoader = getContractLoaderForThisAgent();
         SmartContract smartContract = contractLoader.loadContract();
@@ -220,12 +217,11 @@ public class BidderAgent extends Agent implements TaskedAgent {
 
             log.debug("The Directory Facilitator found the following agents labeled as \"Buyer\": ");
             for (AID agent : agents) {
-                log.debug(agent.getName());
                 message.addReceiver(new AID(agent.getLocalName(), AID.ISLOCALNAME));
             }
 
             if (agents.length == 0) {
-                log.debug("No agents matching the type were found. Terminating: "
+                log.error("No agents matching the type were found. Terminating: "
                         + getAgent().getAID().getName());
                 helper.killAgent(getAgent());
             } else {
@@ -243,8 +239,6 @@ public class BidderAgent extends Agent implements TaskedAgent {
 
         protected void handlePropose(ACLMessage propose, Vector acceptances) {
 
-            log.debug(propose.getSender().getName() + " proposes $" + propose.getContent() + "\".");
-
             if (propose.getPerformative() == ACLMessage.PROPOSE) {
                 BigDecimal proposedPrice = getPriceFromContent(propose.getContent());
                 BigInteger proposedQuantity = getQuantityFromContent(propose.getContent());
@@ -260,9 +254,9 @@ public class BidderAgent extends Agent implements TaskedAgent {
                     reply.setContent(getBiddersAddressFromWalletFilePath() + "|" + proposedPrice + "|" + proposedQuantity);
                 } else {
                     reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
-                    log.info(getAID().getName() + " rejected proposal, because it was too low ("
-                            + proposedPrice + "<" + priceToQuantityRatio.multiply(new BigDecimal(proposedQuantity)) +
-                             ") OR not enough to sell (" + quantityToSell + "<" + proposedQuantity + ")");
+//                    log.info(getAID().getName() + " rejected proposal, because it was too low ("
+//                            + proposedPrice + "<" + priceToQuantityRatio.multiply(new BigDecimal(proposedQuantity)) +
+//                             ") OR not enough to sell (" + quantityToSell + "<" + proposedQuantity + ")");
                 }
                 acceptances.addElement(reply);
             }
@@ -271,7 +265,6 @@ public class BidderAgent extends Agent implements TaskedAgent {
 
         protected void handleRefuse(ACLMessage refuse) {
             globalResponses++;
-            log.debug(refuse.getSender().getName() + " has refused the proposal.");
             if (refuse.getContent() != null) {
                 BigInteger quantityNotSold = new BigInteger(refuse.getContent());
                 quantityToSell = quantityToSell.add(quantityNotSold);
@@ -281,13 +274,12 @@ public class BidderAgent extends Agent implements TaskedAgent {
 
         protected void handleFailure(ACLMessage failure) {
             globalResponses++;
-            log.info(failure.getSender().getName() + " failed to reply.");
+            log.error(failure.getSender().getName() + " failed to reply.");
             helper.removeReceiverAgent(failure.getSender(), failure);
         }
 
         protected void handleInform(ACLMessage inform) {
             globalResponses++;
-            log.debug(getAID().getName() + " got confirmation for the offer");
         }
 
 

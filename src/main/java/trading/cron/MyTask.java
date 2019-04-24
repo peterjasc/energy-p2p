@@ -21,17 +21,17 @@ public class MyTask extends TimerTask {
 
     @Override
     public void run() {
-            if (agent.getQuantity().compareTo(BigInteger.ZERO) == 0) {
-                DFHelper helper = DFHelper.getInstance();
-                helper.killAgent((Agent) agent);
-                this.cancel();
-            }
+        if (agent.getQuantity().compareTo(BigInteger.ZERO) == 0) {
+            DFHelper helper = DFHelper.getInstance();
+            helper.killAgent((Agent) agent);
+            this.cancel();
+        }
 
-            if (!agent.getLogsForPreviousRoundId(agent.getRoundID().add(BigInteger.ONE)).isEmpty()) {
-                agent.doInteractionBehaviour();
-                agent.setRoundID(agent.getRoundID().add(BigInteger.ONE));
-            } else {
-                log.debug("No logs for current round found");
+        if (!agent.getLogsForPreviousRoundId(agent.getRoundID().add(BigInteger.ONE)).isEmpty()) {
+            agent.doInteractionBehaviour();
+            agent.setRoundID(agent.getRoundID().add(BigInteger.ONE));
+        } else {
+            log.debug("No logs for current round found");
             }
     }
 
