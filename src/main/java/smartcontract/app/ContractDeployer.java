@@ -52,9 +52,12 @@ public class ContractDeployer {
 // Get all the contracts from a specific round
 
 //        SmartContract smartContract = contractLoader.loadContract();
+//        System.out.println("roundId,bidder,quantity");
 //        List<SmartContract.BidAcceptedEventResponse> list
-//                = contractLoader.getLogsForRoundIdRange(BigInteger.valueOf(6), BigInteger.valueOf(6), smartContract);
+//                = contractLoader.getLogsForRoundIdRange(BigInteger.valueOf(10), BigInteger.valueOf(19), smartContract);
 //        for (SmartContract.BidAcceptedEventResponse o : list) {
+//        System.out.println(o.roundId + "," + o.bidder + "," + o.quantity);
+
 //        log.info("\n");
 //        log.info("roundId " + o.roundId);
 //        log.info("contractId " + o.contractId);

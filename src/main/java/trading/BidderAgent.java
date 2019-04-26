@@ -132,7 +132,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
         doInteractionBehaviour();
         Timer t = new Timer();
         MyTask mTask = new MyTask(this);
-        t.scheduleAtFixedRate(mTask, 0, 21000);
+//        t.scheduleAtFixedRate(mTask, 0, 21000);
     }
 
     public void doInteractionBehaviour() {
@@ -269,7 +269,6 @@ public class BidderAgent extends Agent implements TaskedAgent {
                 BigInteger quantityNotSold = new BigInteger(refuse.getContent());
                 quantityToSell = quantityToSell.add(quantityNotSold);
             }
-            helper.removeReceiverAgent(refuse.getSender(), refuse);
         }
 
         protected void handleFailure(ACLMessage failure) {

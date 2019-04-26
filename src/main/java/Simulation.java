@@ -10,6 +10,7 @@ import trading.TradeAgentFactory;
 import trading.Trader;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Objects;
@@ -38,31 +39,43 @@ public class Simulation implements Serializable {
     }
 
     private void createAgents(ContainerController containerController) throws StaleProxyException {
-        int round_id = 6;
+        int round_id = 34;
         int wallet_id = 0;
         int buyer = 0;
         int bidder = 0;
 
-        for (int i = 0; i < 1; i++) {
+//            todo: for some reason, JADE won't allow us to create new agents, once the agents have started bidding
+//        for (int i = 0; i < 10; i++) {
             ArrayList<Trader> agents = new ArrayList<>();
 
-            for (; buyer % 10 == 0; buyer++) {
+            // ratio, quantity
+            for (; buyer % 10 != 0 || buyer == 0; buyer++) {
                 wallet_id += 1;
                 BuyerAgent buyerAgent = new BuyerAgent();
                 agents.add(TradeAgentFactory.createTradeAgent("buyer"+buyer, buyerAgent, containerController,
                         "20.0", "10", Integer.toString(round_id), WALLET_HOME + wallets.get(wallet_id)));
             }
 
-            for (; bidder % 10 == 0; bidder++) {
-                wallet_id += 1;
+            // ratio, quantity, price
+            for (; bidder % 10 != 0 || bidder == 0; bidder++) {
+                wallet_id = bidder % 10;
                 BidderAgent bidderAgent = new BidderAgent();
                 agents.add(TradeAgentFactory.createTradeAgent("bidder"+bidder, bidderAgent, containerController,
-                        "20.0", "10",
-                        WALLET_HOME + wallets.get(wallet_id)));
+                        "10.0", "10", "100", Integer.toString(round_id), WALLET_HOME + wallets.get(wallet_id)));
             }
 
             startAll(agents);
-        }
+//            try {
+//                System.out.println("Press enter to continue:\n");
+//                int in = System.in.read();
+//                System.out.println(in);
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//                System.exit(0);
+//            }
+//
+//            round_id += 1;
+//        }
     }
 
     public ArrayList<String> getWallets() {

@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import trading.DFHelper;
 
 
-//todo: make this work with 100 agents in async (main problem is ContractLoader)
 public class MyTask extends TimerTask {
 
     private static final Logger log = LoggerFactory.getLogger(MyTask.class);
@@ -23,6 +22,7 @@ public class MyTask extends TimerTask {
     public void run() {
         if (agent.getQuantity().compareTo(BigInteger.ZERO) == 0) {
             DFHelper helper = DFHelper.getInstance();
+            log.info("killed agent " + ((Agent) agent).getName());
             helper.killAgent((Agent) agent);
             this.cancel();
         }

@@ -80,7 +80,7 @@ public class BuyerAgent extends Agent implements TaskedAgent {
         doInteractionBehaviour();
         Timer t = new Timer();
         MyTask mTask = new MyTask(this);
-        t.scheduleAtFixedRate(mTask, 0, 20000);
+//        t.scheduleAtFixedRate(mTask, 0, 20000);
 
     }
 
@@ -99,11 +99,12 @@ public class BuyerAgent extends Agent implements TaskedAgent {
         return new ContractLoader("password", walletFilePath);
     }
 
+    // actually getting the current round id
     public Set<SmartContract.BidAcceptedEventResponse> getLogsForPreviousRoundId(BigInteger currentRoundId) {
         try {
             semaphore.acquire();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.error(this.getAID().getName() + " was interrupted while waiting for semaphore");
         }
 
         ContractLoader contractLoader = getContractLoaderForThisAgent();
@@ -181,6 +182,8 @@ public class BuyerAgent extends Agent implements TaskedAgent {
                     if (msg != null) {
                         ACLMessage exitResponse = refuseUnnecessaryBid(msg);
                         if (exitResponse != null) {
+                            log.info(getAgent().getName() + " refused offer from "
+                                    + msg.getSender().getName() + ", because they already bought enough energy");
                             exitResponse.setContent(getPriceFromContent(accept.getContent()).toPlainString());
                             return exitResponse;
                         }
@@ -196,15 +199,14 @@ public class BuyerAgent extends Agent implements TaskedAgent {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-                        log.info(getAID().getName() + " has accepted the offer from "
-                                + accept.getSender().getName() + ", and will send $" + payment + " for " + quantity + " Wh.");
-
 
                         try {
                             semaphore.acquire();
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
+                        log.info(getAID().getName() + " has accepted the offer from "
+                                + accept.getSender().getName() + ", and will send $" + payment + " for " + quantity + " Wh.");
                         ContractLoader contractLoader = new ContractLoader("password",
                                 walletFilePath);
                         SmartContract smartContract = contractLoader.loadContract();
@@ -237,6 +239,7 @@ public class BuyerAgent extends Agent implements TaskedAgent {
 //                        + " has bought all the energy they need and rejects the proposal from " + msg.getSender());
                 ACLMessage exitResponse = msg.createReply();
                 exitResponse.setPerformative(ACLMessage.REFUSE);
+
                 return exitResponse;
             }
             return null;
