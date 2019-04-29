@@ -11,7 +11,7 @@ import org.apache.commons.validator.routines.BigDecimalValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import smartcontract.app.generated.SmartContract;
-import trading.cron.MyTask;
+import trading.cron.AgentTask;
 import trading.cron.TaskedAgent;
 
 import java.math.BigDecimal;
@@ -37,11 +37,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
     private static final Semaphore semaphore = new Semaphore(1, true);
 
     public BigInteger getRoundID() {
-        return this.roundId;
-    }
-
-    public void setRoundID(BigInteger roundID) {
-        this.roundId = roundID;
+        return RoundHelper.getRoundId();
     }
 
     public BigInteger getQuantity() {
@@ -53,22 +49,20 @@ public class BidderAgent extends Agent implements TaskedAgent {
         helper = DFHelper.getInstance();
 
         Object[] args = getArguments();
-        if (args != null && args.length == 5) {
+        if (args != null && args.length == 4) {
 
 
             String ratio = (String) args[0];
             String quantity = (String) args[1];
             String price = (String) args[2];
-            String roundIdString = (String) args[3];
-            walletFilePath = (String) args[4];
+            walletFilePath = (String) args[3];
             String biddersAddress = getBiddersAddressFromWalletFilePath();
 
 
             if (BigDecimalValidator.getInstance().validate(ratio) != null
                     && NumberUtils.isDigits(price)
-                    && NumberUtils.isDigits(quantity)
-                    && NumberUtils.isDigits(roundIdString)) {
-                roundId = new BigInteger(roundIdString);
+                    && NumberUtils.isDigits(quantity)) {
+                roundId = RoundHelper.getRoundId();
                 quantityToSell = new BigInteger(quantity);
                 priceToQuantityRatio = new BigDecimal(ratio);
 
@@ -125,17 +119,18 @@ public class BidderAgent extends Agent implements TaskedAgent {
                 doDelete();
             }
         } else {
-            log.error("Two arguments required.");
+            log.error("Wrong number of arguments.");
             log.error("Terminating: " + this.getAID().getName());
             doDelete();
         }
         doInteractionBehaviour();
         Timer t = new Timer();
-        MyTask mTask = new MyTask(this);
-//        t.scheduleAtFixedRate(mTask, 0, 21000);
+        AgentTask mTask = new AgentTask(this);
+        t.scheduleAtFixedRate(mTask, 0, 21000);
     }
 
     public void doInteractionBehaviour() {
+        roundId = getRoundID();
         addBehaviour(new CustomContractNetInitiator(this, null));
     }
 

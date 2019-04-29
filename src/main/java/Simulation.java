@@ -4,14 +4,12 @@ import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import trading.BidderAgent;
-import trading.BuyerAgent;
-import trading.TradeAgentFactory;
-import trading.Trader;
+import trading.*;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Objects;
 
@@ -39,10 +37,10 @@ public class Simulation implements Serializable {
     }
 
     private void createAgents(ContainerController containerController) throws StaleProxyException {
-        int round_id = 34;
         int wallet_id = 0;
         int buyer = 0;
         int bidder = 0;
+        RoundHelper.setRoundId(BigInteger.valueOf(34));
 
 //            todo: for some reason, JADE won't allow us to create new agents, once the agents have started bidding
 //        for (int i = 0; i < 10; i++) {
@@ -53,7 +51,7 @@ public class Simulation implements Serializable {
                 wallet_id += 1;
                 BuyerAgent buyerAgent = new BuyerAgent();
                 agents.add(TradeAgentFactory.createTradeAgent("buyer"+buyer, buyerAgent, containerController,
-                        "20.0", "10", Integer.toString(round_id), WALLET_HOME + wallets.get(wallet_id)));
+                        "20.0", "10", WALLET_HOME + wallets.get(wallet_id)));
             }
 
             // ratio, quantity, price
@@ -61,7 +59,7 @@ public class Simulation implements Serializable {
                 wallet_id = bidder % 10;
                 BidderAgent bidderAgent = new BidderAgent();
                 agents.add(TradeAgentFactory.createTradeAgent("bidder"+bidder, bidderAgent, containerController,
-                        "10.0", "10", "100", Integer.toString(round_id), WALLET_HOME + wallets.get(wallet_id)));
+                        "10.0", "10", "100", WALLET_HOME + wallets.get(wallet_id)));
             }
 
             startAll(agents);
