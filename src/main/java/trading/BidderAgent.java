@@ -61,10 +61,6 @@ public class BidderAgent extends Agent implements TaskedAgent {
                 quantityToSell = new BigInteger(quantity);
                 priceToQuantityRatio = new BigDecimal(ratio);
 
-                Bid bid = calculateBid();
-                log.info(getAID().getName() + " has issued a new offer" + bid + ".\n");
-                bidsForRounds.put(roundId, bid);
-
                 ServiceDescription serviceDescription = new ServiceDescription();
                 serviceDescription.setType("Bidder");
                 serviceDescription.setName(getLocalName());
@@ -85,9 +81,6 @@ public class BidderAgent extends Agent implements TaskedAgent {
         t.scheduleAtFixedRate(mTask, 0, 21000);
     }
 
-    // todo: currently, have to call this method inside setup,
-    //  otherwise holding the semaphore will stop the buyer from responding,
-    //  when called inside prepareCfps method
     private Bid calculateBid() {
         String biddersAddress = getBiddersAddressFromWalletFilePath(walletFilePath);
         BigDecimal price;
@@ -144,17 +137,19 @@ public class BidderAgent extends Agent implements TaskedAgent {
         addBehaviour(new CustomContractNetInitiator(this, null));
     }
 
+    // todo: if we added the contracts synchronously, then it would make sense to uncomment this
     public Set<SmartContract.BidAcceptedEventResponse> getLogsForPreviousRoundId(BigInteger currentRoundId) {
 //        try {
 //            semaphore.acquire();
 //        } catch (InterruptedException e) {
 //            log.error(this.getAID().getName() + " was interrupted while waiting for semaphore");
 //        }
-        ContractLoader contractLoader = getContractLoaderForThisAgent();
-        SmartContract smartContract = contractLoader.loadContract();
-        Set<SmartContract.BidAcceptedEventResponse> logs
-                = contractLoader.getLogsForRoundId(currentRoundId.subtract(BigInteger.ONE), smartContract);
+//        ContractLoader contractLoader = getContractLoaderForThisAgent();
+//        SmartContract smartContract = contractLoader.loadContract();
+//        Set<SmartContract.BidAcceptedEventResponse> logs
+//                = contractLoader.getLogsForRoundId(currentRoundId.subtract(BigInteger.ONE), smartContract);
 //        semaphore.release();
+        Set<SmartContract.BidAcceptedEventResponse> logs = new HashSet<>();
         return logs;
     }
 
@@ -225,7 +220,16 @@ public class BidderAgent extends Agent implements TaskedAgent {
             } else {
                 message.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
                 message.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
-                Bid bid = bidsForRounds.get(roundId);
+                Bid bid;
+                // todo: this is needed as long as we have no logs returned so that the first time,
+                //  the agent does not give a discount
+                if (bidsForRounds.get(roundId) != null) {
+                    bid = new Bid(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell)), quantityToSell);
+                } else {
+                    bid = calculateBid();
+                }
+                log.info(getAID().getName() + " has issued a new offer" + bid);
+
                 message.setContent(getBiddersAddressFromWalletFilePath(walletFilePath)
                         + "|" + bid.getPrice() + "|" + bid.getQuantity());
 
@@ -269,7 +273,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
         protected void handleFailure(ACLMessage failure) {
             globalResponses++;
             if (failure.getContent() != null) {
-                log.warn(this.getAgent().getName() + " was refused/failed proposal from " + failure.getSender().getName());
+//                log.info(this.getAgent().getName() + " was refused/failed proposal from " + failure.getSender().getName());
                 BigInteger quantityNotSold = new BigDecimal(failure.getContent()).toBigInteger();
                 quantityToSell = quantityToSell.add(quantityNotSold);
             }

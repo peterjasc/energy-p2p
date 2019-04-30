@@ -42,42 +42,41 @@ public class Simulation implements Serializable {
         int buyer = 0;
         int bidder = 0;
 
-//        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 2; i++) {
             RoundHelper.setRoundId(BigInteger.valueOf(round_id));
             ArrayList<Trader> agents = new ArrayList<>();
 
+            int counter = 0;
             // ratio, quantity
-            for (; buyer % 10 != 0 || buyer == 0; buyer++) {
+            for (; counter % 10 != 0 || counter == 0; counter++, buyer++) {
                 wallet_id += 1;
                 BuyerAgent buyerAgent = new BuyerAgent();
                 agents.add(TradeAgentFactory.createTradeAgent("buyer"+buyer, buyerAgent, containerController,
                         "20.0", "10", WALLET_HOME + wallets.get(wallet_id)));
             }
 
+            int counter2 = 0;
             // ratio, quantity, price
-            for (; bidder % 10 != 0 || bidder == 0; bidder++) {
+            for (; counter2 % 10 != 0 || counter2 == 0; counter2++, bidder++) {
                 wallet_id = bidder % 10;
                 BidderAgent bidderAgent = new BidderAgent();
                 agents.add(TradeAgentFactory.createTradeAgent("bidder"+bidder, bidderAgent, containerController,
                         "10.0", "10", WALLET_HOME + wallets.get(wallet_id)));
             }
 
-            for (Trader agent : agents) {
-                log.info(agent.getNickname());
-            }
             startAll(agents);
 
-//            try {
-//                System.out.println("Press enter to continue:\n");
-//                int in = System.in.read();
-//                System.out.println(in);
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//                System.exit(0);
-//            }
+            try {
+                System.out.println("Press enter to continue:\n");
+                int in = System.in.read();
+                System.out.println(in);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(0);
+            }
 
-//            round_id += 1;
-//        }
+            round_id += 1;
+        }
     }
 
     public ArrayList<String> getWallets() {
@@ -91,7 +90,6 @@ public class Simulation implements Serializable {
 
     public void startAll(ArrayList<Trader> agents) throws StaleProxyException {
         for (Trader trader : agents) {
-//            log.info("Starting up " + trader.getNickname());
             trader.start();
         }
     }

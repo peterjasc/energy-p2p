@@ -96,6 +96,7 @@ public class BuyerAgent extends Agent implements TaskedAgent {
     }
 
     // actually getting the current round id
+    // todo: if we added the contracts synchronously, then it would make sense to uncomment this
     public Set<SmartContract.BidAcceptedEventResponse> getLogsForPreviousRoundId(BigInteger currentRoundId) {
 //        try {
 //            semaphore.acquire();
@@ -103,11 +104,12 @@ public class BuyerAgent extends Agent implements TaskedAgent {
 //            log.error(this.getAID().getName() + " was interrupted while waiting for semaphore");
 //        }
 
-        ContractLoader contractLoader = getContractLoaderForThisAgent();
-        SmartContract smartContract = contractLoader.loadContract();
-        Set<SmartContract.BidAcceptedEventResponse> logs
-                = contractLoader.getLogsForRoundId(currentRoundId, smartContract);
+//        ContractLoader contractLoader = getContractLoaderForThisAgent();
+//        SmartContract smartContract = contractLoader.loadContract();
+//        Set<SmartContract.BidAcceptedEventResponse> logs
+//                = contractLoader.getLogsForRoundId(currentRoundId, smartContract);
 //        semaphore.release();
+        Set<SmartContract.BidAcceptedEventResponse>  logs = new HashSet<>();
         return logs;
     }
 
@@ -266,6 +268,7 @@ public class BuyerAgent extends Agent implements TaskedAgent {
                             content.lastIndexOf("|")));
         }
 
+        // todo: for simulation it is far too slow to do this synchronously (wait for it to be stored)
         private void addContractToChain(SmartContract smartContract,
                                         String roundId, String contractId,
                                         String bidderAddress, String quantity, String price) {

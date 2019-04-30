@@ -39,7 +39,7 @@ public final class DFHelper extends Agent {
 		try {
 			registeredAgents.add(agent);
 			DFService.register(agent, dfAgentDescription);
-			log.info(agent.getName() + " registered as: " + serviceDescription.getType() + ".");
+//			log.info(agent.getName() + " registered as: " + serviceDescription.getType() + ".");
 		} catch (FIPAException e) {
 			e.printStackTrace();
 		}
