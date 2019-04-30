@@ -35,7 +35,7 @@ public class BuyerAgent extends Agent implements TaskedAgent {
 
     private static final Semaphore semaphore = new Semaphore(1, true);
 
-    public BigInteger getRoundID() {
+    private BigInteger getRoundID() {
         return RoundHelper.getRoundId();
     }
 
@@ -162,7 +162,7 @@ public class BuyerAgent extends Agent implements TaskedAgent {
 
                     if (buyersHighestPriceForOfferQuantity.compareTo(receivedOfferPrice) >= 0) {
                         response.setPerformative(ACLMessage.PROPOSE);
-                        response.setContent(String.valueOf(receivedOfferPrice) + "|" + String.valueOf(receivedOfferQuantity));
+                        response.setContent(receivedOfferPrice + "|" + receivedOfferQuantity);
 
                     } else {
                         log.info(getAID().getName() + " refused bid. Their highest price was " + buyersHighestPriceForOfferQuantity
@@ -246,8 +246,7 @@ public class BuyerAgent extends Agent implements TaskedAgent {
 
         private BigInteger getQuantityFromContent(String content) {
             return new BigInteger(
-                    content.substring(content.lastIndexOf("|") + 1,
-                            content.length()));
+                    content.substring(content.lastIndexOf("|") + 1));
         }
 
         private BigDecimal getPriceFromContent(String content) {

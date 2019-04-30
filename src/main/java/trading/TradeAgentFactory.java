@@ -31,10 +31,9 @@ public class TradeAgentFactory {
                 arguments = agent.getArguments();
             }
         } else {
-            throw new IllegalArgumentException("createTradeAgent needs either a BuyerAgent or a BidderAgent agent argument");
+            throw new IllegalArgumentException(
+                    "createTradeAgent needs either a BuyerAgent or a BidderAgent agent instance");
         }
-
-
 
         trader.setTradeAgent(agent);
 

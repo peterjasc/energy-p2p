@@ -3,7 +3,6 @@ package trading.cron;
 import java.math.BigInteger;
 import java.util.TimerTask;
 
-import jade.core.Agent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import trading.DFHelper;

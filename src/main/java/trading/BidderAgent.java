@@ -36,7 +36,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
 
     private static final Semaphore semaphore = new Semaphore(1, true);
 
-    public BigInteger getRoundID() {
+    private BigInteger getRoundID() {
         return RoundHelper.getRoundId();
     }
 
@@ -44,70 +44,26 @@ public class BidderAgent extends Agent implements TaskedAgent {
         return quantityToSell;
     }
 
-    // todo: shouldn't call doInteractionBehaviour, if roundId from blockchain is not correct
     protected void setup() {
         helper = DFHelper.getInstance();
 
         Object[] args = getArguments();
-        if (args != null && args.length == 4) {
+        if (args != null && args.length == 3) {
 
 
             String ratio = (String) args[0];
             String quantity = (String) args[1];
-            String price = (String) args[2];
-            walletFilePath = (String) args[3];
-            String biddersAddress = getBiddersAddressFromWalletFilePath();
-
+            walletFilePath = (String) args[2];
 
             if (BigDecimalValidator.getInstance().validate(ratio) != null
-                    && NumberUtils.isDigits(price)
                     && NumberUtils.isDigits(quantity)) {
                 roundId = RoundHelper.getRoundId();
                 quantityToSell = new BigInteger(quantity);
                 priceToQuantityRatio = new BigDecimal(ratio);
 
-                Bid bid = new Bid(new BigDecimal(price), quantityToSell);
-
-                Set<SmartContract.BidAcceptedEventResponse> logsForPenultimateRoundId
-                        = getLogsForPreviousRoundId(roundId);
-                log.debug("current RoundId is " + roundId);
-                Bid bestBidFromPenultimateRound = getBestBidFromBidSet(logsForPenultimateRoundId);
-                log.debug("bestBidFromPenultimateRound is " + bestBidFromPenultimateRound);
-
-                List<SmartContract.BidAcceptedEventResponse> biddersAcceptedBidsInTheLastRound
-                        = getBiddersBidsInTheLastRoundIfExist(logsForPenultimateRoundId, biddersAddress);
-
-                if (!biddersAcceptedBidsInTheLastRound.isEmpty()) {
-                    BigInteger soldCapacityInTheLastRound = BigInteger.ZERO;
-                    for (SmartContract.BidAcceptedEventResponse biddersAcceptedBids : biddersAcceptedBidsInTheLastRound) {
-                        soldCapacityInTheLastRound = soldCapacityInTheLastRound.add(biddersAcceptedBids.quantity);
-                    }
-
-                    BigDecimal soldCapacityDividedByAvailableCapacity = new BigDecimal(soldCapacityInTheLastRound)
-                            .divide(new BigDecimal(quantity), RoundingMode.HALF_UP);
-
-                    if (soldCapacityDividedByAvailableCapacity.compareTo(new BigDecimal("0.25")) <= 0) {
-                        BigDecimal discountPrice = getDiscountPrice(bestBidFromPenultimateRound);
-                        if (discountPrice
-                                .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell))) >= 0) {
-                            bid.setPrice(discountPrice);
-                        }
-                    } else {
-                        if (bestBidFromPenultimateRound.getPrice()
-                                .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell))) >= 0) {
-                            bid.setPrice(bestBidFromPenultimateRound.getPrice());
-                        }
-                    }
-                } else {
-                    BigDecimal discountPrice = getDiscountPrice(bestBidFromPenultimateRound);
-                    if (discountPrice
-                            .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell))) >= 0) {
-                        bid.setPrice(discountPrice);
-                    }
-                }
-
-                bidsForRounds.put(roundId, bid);
+                Bid bid = calculateBid();
                 log.info(getAID().getName() + " has issued a new offer" + bid + ".\n");
+                bidsForRounds.put(roundId, bid);
 
                 ServiceDescription serviceDescription = new ServiceDescription();
                 serviceDescription.setType("Bidder");
@@ -129,6 +85,60 @@ public class BidderAgent extends Agent implements TaskedAgent {
         t.scheduleAtFixedRate(mTask, 0, 21000);
     }
 
+    // todo: currently, have to call this method inside setup,
+    //  otherwise holding the semaphore will stop the buyer from responding,
+    //  when called inside prepareCfps method
+    private Bid calculateBid() {
+        String biddersAddress = getBiddersAddressFromWalletFilePath(walletFilePath);
+        BigDecimal price;
+
+        Set<SmartContract.BidAcceptedEventResponse> logsForPenultimateRoundId
+                = getLogsForPreviousRoundId(roundId);
+        log.debug("current RoundId is " + roundId);
+        Bid bestBidFromPenultimateRound = getBestBidFromBidSet(logsForPenultimateRoundId);
+        log.debug("bestBidFromPenultimateRound is " + bestBidFromPenultimateRound);
+
+        List<SmartContract.BidAcceptedEventResponse> biddersAcceptedBidsInTheLastRound
+                = getBiddersBidsInTheLastRoundIfExist(logsForPenultimateRoundId, biddersAddress);
+
+        if (!biddersAcceptedBidsInTheLastRound.isEmpty()) {
+            BigInteger soldCapacityInTheLastRound = BigInteger.ZERO;
+            for (SmartContract.BidAcceptedEventResponse biddersAcceptedBids : biddersAcceptedBidsInTheLastRound) {
+                soldCapacityInTheLastRound = soldCapacityInTheLastRound.add(biddersAcceptedBids.quantity);
+            }
+
+            BigDecimal soldCapacityDividedByAvailableCapacity = new BigDecimal(soldCapacityInTheLastRound)
+                    .divide(new BigDecimal(quantityToSell), RoundingMode.HALF_UP);
+
+            if (soldCapacityDividedByAvailableCapacity.compareTo(new BigDecimal("0.25")) <= 0) {
+                BigDecimal discountPrice = getDiscountPrice(bestBidFromPenultimateRound);
+                if (discountPrice
+                        .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell))) >= 0) {
+                    price = discountPrice;
+                } else {
+                    price = priceToQuantityRatio.multiply(new BigDecimal(quantityToSell));
+                }
+            } else {
+                if (bestBidFromPenultimateRound.getPrice()
+                        .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell))) >= 0) {
+                    price = bestBidFromPenultimateRound.getPrice();
+                } else {
+                    price = priceToQuantityRatio.multiply(new BigDecimal(quantityToSell));
+                }
+            }
+        } else {
+            BigDecimal discountPrice = getDiscountPrice(bestBidFromPenultimateRound);
+            if (discountPrice
+                    .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell))) >= 0) {
+                price = discountPrice;
+            } else {
+                price = priceToQuantityRatio.multiply(new BigDecimal(quantityToSell));
+            }
+        }
+
+        return new Bid(price, quantityToSell);
+    }
+
     public void doInteractionBehaviour() {
         roundId = getRoundID();
         addBehaviour(new CustomContractNetInitiator(this, null));
@@ -148,13 +158,6 @@ public class BidderAgent extends Agent implements TaskedAgent {
         return logs;
     }
 
-    private BigInteger findRoundIdFromLastBidEvent() {
-        ContractLoader contractLoader = getContractLoaderForThisAgent();
-        SmartContract smartContract = contractLoader.loadContract();
-        return contractLoader.findRoundIdFromLastBidEvent(smartContract);
-    }
-
-
     private ContractLoader getContractLoaderForThisAgent() {
         return new ContractLoader("password", walletFilePath);
     }
@@ -164,7 +167,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
                 .multiply(new BigDecimal(discountFactorB)).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
     }
 
-    private String getBiddersAddressFromWalletFilePath() {
+    private String getBiddersAddressFromWalletFilePath(String walletFilePath) {
         if (!walletFilePath.equals("")) {
             return walletFilePath.substring(walletFilePath.lastIndexOf("--") + 2);
         } else {
@@ -222,9 +225,9 @@ public class BidderAgent extends Agent implements TaskedAgent {
             } else {
                 message.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
                 message.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
-
                 Bid bid = bidsForRounds.get(roundId);
-                message.setContent(getBiddersAddressFromWalletFilePath() + "|" + bid.getPrice() + "|" + bid.getQuantity());
+                message.setContent(getBiddersAddressFromWalletFilePath(walletFilePath)
+                        + "|" + bid.getPrice() + "|" + bid.getQuantity());
 
                 messages.addElement(message);
             }
@@ -243,10 +246,11 @@ public class BidderAgent extends Agent implements TaskedAgent {
 
                 if (quantityToSell.compareTo(proposedQuantity) >= 0
                         && proposedPrice.compareTo(priceToQuantityRatio
-                            .multiply(new BigDecimal(proposedQuantity)).setScale(0,BigDecimal.ROUND_HALF_UP)) >= 0) {
+                        .multiply(new BigDecimal(proposedQuantity)).setScale(0, BigDecimal.ROUND_HALF_UP)) >= 0) {
                     quantityToSell = quantityToSell.subtract(proposedQuantity);
                     reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-                    reply.setContent(getBiddersAddressFromWalletFilePath() + "|" + proposedPrice + "|" + proposedQuantity);
+                    reply.setContent(getBiddersAddressFromWalletFilePath(walletFilePath)
+                            + "|" + proposedPrice + "|" + proposedQuantity);
                 } else {
                     reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
 //                    log.info(getAID().getName() + " rejected proposal, because it was too low ("
@@ -261,6 +265,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
         protected void handleRefuse(ACLMessage refuse) {
             globalResponses++;
             if (refuse.getContent() != null) {
+                log.warn(this.getAgent().getName() + " was refused proposed from " + refuse.getSender().getName());
                 BigInteger quantityNotSold = new BigInteger(refuse.getContent());
                 quantityToSell = quantityToSell.add(quantityNotSold);
             }
