@@ -19,6 +19,7 @@ import trading.cron.TaskedAgent;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.Timer;
 import java.util.concurrent.Semaphore;
@@ -96,17 +97,17 @@ public class BuyerAgent extends Agent implements TaskedAgent {
 
     // actually getting the current round id
     public Set<SmartContract.BidAcceptedEventResponse> getLogsForPreviousRoundId(BigInteger currentRoundId) {
-        try {
-            semaphore.acquire();
-        } catch (InterruptedException e) {
-            log.error(this.getAID().getName() + " was interrupted while waiting for semaphore");
-        }
+//        try {
+//            semaphore.acquire();
+//        } catch (InterruptedException e) {
+//            log.error(this.getAID().getName() + " was interrupted while waiting for semaphore");
+//        }
 
         ContractLoader contractLoader = getContractLoaderForThisAgent();
         SmartContract smartContract = contractLoader.loadContract();
         Set<SmartContract.BidAcceptedEventResponse> logs
                 = contractLoader.getLogsForRoundId(currentRoundId, smartContract);
-        semaphore.release();
+//        semaphore.release();
         return logs;
     }
 
@@ -175,11 +176,8 @@ public class BuyerAgent extends Agent implements TaskedAgent {
 
                 protected ACLMessage handleAcceptProposal(ACLMessage msg, ACLMessage propose, ACLMessage accept) {
                     if (msg != null) {
-                        ACLMessage exitResponse = refuseUnnecessaryBid(msg);
+                        ACLMessage exitResponse = failUnnecessaryBid(msg, accept);
                         if (exitResponse != null) {
-                            log.info(getAgent().getName() + " refused offer from "
-                                    + msg.getSender().getName() + ", because they already bought enough energy");
-                            exitResponse.setContent(getPriceFromContent(accept.getContent()).toPlainString());
                             return exitResponse;
                         }
 
@@ -195,11 +193,11 @@ public class BuyerAgent extends Agent implements TaskedAgent {
                             e.printStackTrace();
                         }
 
-                        try {
-                            semaphore.acquire();
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
+//                        try {
+//                            semaphore.acquire();
+//                        } catch (InterruptedException e) {
+//                            e.printStackTrace();
+//                        }
                         log.info(getAID().getName() + " has accepted the offer from "
                                 + accept.getSender().getName() + ", and will send $" + payment + " for " + quantity + " Wh.");
                         ContractLoader contractLoader = new ContractLoader("password",
@@ -208,7 +206,7 @@ public class BuyerAgent extends Agent implements TaskedAgent {
 
                         addContractToChain(smartContract, roundId.toString(), "1000",
                                 biddersAddress, quantity.toString(), payment.toString());
-                        semaphore.release();
+//                        semaphore.release();
                         quantityToBuy = quantityToBuy.subtract(quantity);
 
                         ACLMessage inform = accept.createReply();
@@ -234,6 +232,19 @@ public class BuyerAgent extends Agent implements TaskedAgent {
 //                        + " has bought all the energy they need and rejects the proposal from " + msg.getSender());
                 ACLMessage exitResponse = msg.createReply();
                 exitResponse.setPerformative(ACLMessage.REFUSE);
+
+                return exitResponse;
+            }
+            return null;
+        }
+
+        private ACLMessage failUnnecessaryBid(ACLMessage msg, ACLMessage accept) {
+            if (quantityToBuy.compareTo(BigInteger.ZERO) == 0) {
+                log.info(getAgent().getName() + " refused offer from "
+                        + msg.getSender().getName() + ", because they already bought enough energy");
+                ACLMessage exitResponse = msg.createReply();
+                exitResponse.setContent(getPriceFromContent(accept.getContent()).toPlainString());
+                exitResponse.setPerformative(ACLMessage.FAILURE);
 
                 return exitResponse;
             }

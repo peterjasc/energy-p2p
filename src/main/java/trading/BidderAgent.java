@@ -145,16 +145,16 @@ public class BidderAgent extends Agent implements TaskedAgent {
     }
 
     public Set<SmartContract.BidAcceptedEventResponse> getLogsForPreviousRoundId(BigInteger currentRoundId) {
-        try {
-            semaphore.acquire();
-        } catch (InterruptedException e) {
-            log.error(this.getAID().getName() + " was interrupted while waiting for semaphore");
-        }
+//        try {
+//            semaphore.acquire();
+//        } catch (InterruptedException e) {
+//            log.error(this.getAID().getName() + " was interrupted while waiting for semaphore");
+//        }
         ContractLoader contractLoader = getContractLoaderForThisAgent();
         SmartContract smartContract = contractLoader.loadContract();
         Set<SmartContract.BidAcceptedEventResponse> logs
                 = contractLoader.getLogsForRoundId(currentRoundId.subtract(BigInteger.ONE), smartContract);
-        semaphore.release();
+//        semaphore.release();
         return logs;
     }
 
@@ -264,17 +264,15 @@ public class BidderAgent extends Agent implements TaskedAgent {
 
         protected void handleRefuse(ACLMessage refuse) {
             globalResponses++;
-            if (refuse.getContent() != null) {
-                log.warn(this.getAgent().getName() + " was refused proposed from " + refuse.getSender().getName());
-                BigInteger quantityNotSold = new BigInteger(refuse.getContent());
-                quantityToSell = quantityToSell.add(quantityNotSold);
-            }
         }
 
         protected void handleFailure(ACLMessage failure) {
             globalResponses++;
-            log.error(failure.getSender().getName() + " failed to reply.");
-            helper.removeReceiverAgent(failure.getSender(), failure);
+            if (failure.getContent() != null) {
+                log.warn(this.getAgent().getName() + " was refused/failed proposal from " + failure.getSender().getName());
+                BigInteger quantityNotSold = new BigDecimal(failure.getContent()).toBigInteger();
+                quantityToSell = quantityToSell.add(quantityNotSold);
+            }
         }
 
         protected void handleInform(ACLMessage inform) {
