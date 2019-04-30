@@ -1,4 +1,10 @@
 
+### Setting up the environment for simulation
+
+In order for the simulation to work, a local blockchain setup is needed. 
+Once the first account is created on the blockchain, it can be used in WalletGenerator.go to create accounts and send
+ether to them (if the first account has enough ether for this) so that multiple accounts can be used for the simulation.
+
 ### Testing contract deployment
 
 Running the node:
