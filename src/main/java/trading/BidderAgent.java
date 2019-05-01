@@ -61,6 +61,9 @@ public class BidderAgent extends Agent implements TaskedAgent {
                 quantityToSell = new BigInteger(quantity);
                 priceToQuantityRatio = new BigDecimal(ratio);
 
+                Bid bid = calculateBid();
+                bidsForRounds.put(roundId, bid);
+
                 ServiceDescription serviceDescription = new ServiceDescription();
                 serviceDescription.setType("Bidder");
                 serviceDescription.setName(getLocalName());
