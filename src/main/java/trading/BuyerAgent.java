@@ -126,6 +126,7 @@ public class BuyerAgent extends Agent implements TaskedAgent {
                 private static final long serialVersionUID = 1L;
 
                 protected ACLMessage handleCfp(ACLMessage cfp) {
+
                     BigDecimal receivedOfferPrice = BigDecimal.ZERO;
                     BigInteger receivedOfferQuantity = BigInteger.ZERO;
 
@@ -245,7 +246,7 @@ public class BuyerAgent extends Agent implements TaskedAgent {
                 log.info(getAgent().getName() + " refused offer from "
                         + msg.getSender().getName() + ", because they already bought enough energy");
                 ACLMessage exitResponse = msg.createReply();
-                exitResponse.setContent(getPriceFromContent(accept.getContent()).toPlainString());
+                exitResponse.setContent(getQuantityFromContent(accept.getContent()).toString());
                 exitResponse.setPerformative(ACLMessage.FAILURE);
 
                 return exitResponse;

@@ -42,7 +42,7 @@ public class Simulation implements Serializable {
         int buyer = 0;
         int bidder = 0;
 
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 10; i++) {
             RoundHelper.setRoundId(BigInteger.valueOf(round_id));
             ArrayList<Trader> agents = new ArrayList<>();
 
@@ -58,7 +58,7 @@ public class Simulation implements Serializable {
             int counter2 = 0;
             // ratio, quantity, price
             for (; counter2 % 10 != 0 || counter2 == 0; counter2++, bidder++) {
-                wallet_id = bidder % 10;
+                wallet_id += 1;
                 BidderAgent bidderAgent = new BidderAgent();
                 agents.add(TradeAgentFactory.createTradeAgent("bidder"+bidder, bidderAgent, containerController,
                         "10.0", "10", WALLET_HOME + wallets.get(wallet_id)));
@@ -67,7 +67,7 @@ public class Simulation implements Serializable {
             startAll(agents);
 
             try {
-                System.out.println("Press enter to continue:\n");
+                System.out.println("Index no: " + i + ". Press enter to continue:\n");
                 int in = System.in.read();
                 System.out.println(in);
             } catch (IOException e) {

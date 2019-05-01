@@ -137,6 +137,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
         addBehaviour(new CustomContractNetInitiator(this, null));
     }
 
+    // todo: figure out a way to not use static semaphores for ContractLoader (too many instances cause out of memory exceptions)
     // todo: if we added the contracts synchronously, then it would make sense to uncomment this
     public Set<SmartContract.BidAcceptedEventResponse> getLogsForPreviousRoundId(BigInteger currentRoundId) {
 //        try {
@@ -261,6 +262,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
 //                            + proposedPrice + "<" + priceToQuantityRatio.multiply(new BigDecimal(proposedQuantity)) +
 //                             ") OR not enough to sell (" + quantityToSell + "<" + proposedQuantity + ")");
                 }
+
                 acceptances.addElement(reply);
             }
 
