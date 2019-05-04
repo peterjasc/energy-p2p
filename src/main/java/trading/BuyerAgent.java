@@ -34,7 +34,17 @@ public class BuyerAgent extends Agent implements TaskedAgent {
 
     private BigInteger roundId = BigInteger.ZERO;
 
-    private static final Semaphore semaphore = new Semaphore(1, true);
+    private static final Semaphore semaphore = new Semaphore(3, true);
+
+    private boolean secondTimeQuantityIsZero;
+
+    public boolean isSecondTimeQuantityIsZero() {
+        return secondTimeQuantityIsZero;
+    }
+
+    public void setSecondTimeQuantityIsZero(boolean secondTimeQuantityIsZero) {
+        this.secondTimeQuantityIsZero = secondTimeQuantityIsZero;
+    }
 
     private BigInteger getRoundID() {
         return RoundHelper.getRoundId();
@@ -95,21 +105,9 @@ public class BuyerAgent extends Agent implements TaskedAgent {
         return new ContractLoader("password", walletFilePath);
     }
 
-    // actually getting the current round id
-    // todo: if we added the contracts synchronously, then it would make sense to uncomment this
+    //todo: unused
     public Set<SmartContract.BidAcceptedEventResponse> getLogsForPreviousRoundId(BigInteger currentRoundId) {
-//        try {
-//            semaphore.acquire();
-//        } catch (InterruptedException e) {
-//            log.error(this.getAID().getName() + " was interrupted while waiting for semaphore");
-//        }
-
-//        ContractLoader contractLoader = getContractLoaderForThisAgent();
-//        SmartContract smartContract = contractLoader.loadContract();
-//        Set<SmartContract.BidAcceptedEventResponse> logs
-//                = contractLoader.getLogsForRoundId(currentRoundId, smartContract);
-//        semaphore.release();
-        Set<SmartContract.BidAcceptedEventResponse>  logs = new HashSet<>();
+        Set<SmartContract.BidAcceptedEventResponse> logs = new HashSet<>();
         return logs;
     }
 
@@ -196,11 +194,11 @@ public class BuyerAgent extends Agent implements TaskedAgent {
                             e.printStackTrace();
                         }
 
-//                        try {
-//                            semaphore.acquire();
-//                        } catch (InterruptedException e) {
-//                            e.printStackTrace();
-//                        }
+                        try {
+                            semaphore.acquire();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                         log.info(getAID().getName() + " has accepted the offer from "
                                 + accept.getSender().getName() + ", and will send $" + payment + " for " + quantity + " Wh.");
                         ContractLoader contractLoader = new ContractLoader("password",
@@ -209,7 +207,7 @@ public class BuyerAgent extends Agent implements TaskedAgent {
 
                         addContractToChain(smartContract, roundId.toString(), "1000",
                                 biddersAddress, quantity.toString(), payment.toString());
-//                        semaphore.release();
+                        semaphore.release();
                         quantityToBuy = quantityToBuy.subtract(quantity);
 
                         ACLMessage inform = accept.createReply();
@@ -269,7 +267,6 @@ public class BuyerAgent extends Agent implements TaskedAgent {
                             content.lastIndexOf("|")));
         }
 
-        // todo: for simulation it is far too slow to do this synchronously (wait for it to be stored)
         private void addContractToChain(SmartContract smartContract,
                                         String roundId, String contractId,
                                         String bidderAddress, String quantity, String price) {

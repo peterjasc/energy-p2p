@@ -34,7 +34,17 @@ public class BidderAgent extends Agent implements TaskedAgent {
 
     private BigInteger roundId = BigInteger.ZERO;
 
-    private static final Semaphore semaphore = new Semaphore(1, true);
+    private static final Semaphore semaphore = new Semaphore(3, true);
+
+    private boolean secondTimeQuantityIsZero;
+
+    public boolean isSecondTimeQuantityIsZero() {
+        return secondTimeQuantityIsZero;
+    }
+
+    public void setSecondTimeQuantityIsZero(boolean secondTimeQuantityIsZero) {
+        this.secondTimeQuantityIsZero = secondTimeQuantityIsZero;
+    }
 
     private BigInteger getRoundID() {
         return RoundHelper.getRoundId();
@@ -91,11 +101,12 @@ public class BidderAgent extends Agent implements TaskedAgent {
         Set<SmartContract.BidAcceptedEventResponse> logsForPenultimateRoundId
                 = getLogsForPreviousRoundId(roundId);
         log.debug("current RoundId is " + roundId);
-        Bid bestBidFromPenultimateRound = getBestBidFromBidSet(logsForPenultimateRoundId);
-        log.debug("bestBidFromPenultimateRound is " + bestBidFromPenultimateRound);
+        Bid bestBidFromLastRound = getBestBidFromBidSet(logsForPenultimateRoundId);
+        log.debug("bestBidFromLastRound is " + bestBidFromLastRound);
 
         List<SmartContract.BidAcceptedEventResponse> biddersAcceptedBidsInTheLastRound
                 = getBiddersBidsInTheLastRoundIfExist(logsForPenultimateRoundId, biddersAddress);
+
 
         if (!biddersAcceptedBidsInTheLastRound.isEmpty()) {
             BigInteger soldCapacityInTheLastRound = BigInteger.ZERO;
@@ -106,8 +117,10 @@ public class BidderAgent extends Agent implements TaskedAgent {
             BigDecimal soldCapacityDividedByAvailableCapacity = new BigDecimal(soldCapacityInTheLastRound)
                     .divide(new BigDecimal(quantityToSell), RoundingMode.HALF_UP);
 
+            log.debug("soldCapacityDividedByAvailableCapacity is " + soldCapacityDividedByAvailableCapacity);
+
             if (soldCapacityDividedByAvailableCapacity.compareTo(new BigDecimal("0.25")) <= 0) {
-                BigDecimal discountPrice = getDiscountPrice(bestBidFromPenultimateRound);
+                BigDecimal discountPrice = getDiscountPrice(bestBidFromLastRound);
                 if (discountPrice
                         .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell))) >= 0) {
                     price = discountPrice;
@@ -115,15 +128,15 @@ public class BidderAgent extends Agent implements TaskedAgent {
                     price = priceToQuantityRatio.multiply(new BigDecimal(quantityToSell));
                 }
             } else {
-                if (bestBidFromPenultimateRound.getPrice()
+                if (bestBidFromLastRound.getPrice()
                         .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell))) >= 0) {
-                    price = bestBidFromPenultimateRound.getPrice();
+                    price = bestBidFromLastRound.getPrice();
                 } else {
                     price = priceToQuantityRatio.multiply(new BigDecimal(quantityToSell));
                 }
             }
         } else {
-            BigDecimal discountPrice = getDiscountPrice(bestBidFromPenultimateRound);
+            BigDecimal discountPrice = getDiscountPrice(bestBidFromLastRound);
             if (discountPrice
                     .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell))) >= 0) {
                 price = discountPrice;
@@ -141,19 +154,17 @@ public class BidderAgent extends Agent implements TaskedAgent {
     }
 
     // todo: figure out a way to not use static semaphores for ContractLoader (too many instances cause out of memory exceptions)
-    // todo: if we added the contracts synchronously, then it would make sense to uncomment this
     public Set<SmartContract.BidAcceptedEventResponse> getLogsForPreviousRoundId(BigInteger currentRoundId) {
-//        try {
-//            semaphore.acquire();
-//        } catch (InterruptedException e) {
-//            log.error(this.getAID().getName() + " was interrupted while waiting for semaphore");
-//        }
-//        ContractLoader contractLoader = getContractLoaderForThisAgent();
-//        SmartContract smartContract = contractLoader.loadContract();
-//        Set<SmartContract.BidAcceptedEventResponse> logs
-//                = contractLoader.getLogsForRoundId(currentRoundId.subtract(BigInteger.ONE), smartContract);
-//        semaphore.release();
-        Set<SmartContract.BidAcceptedEventResponse> logs = new HashSet<>();
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+            log.error(this.getAID().getName() + " was interrupted while waiting for semaphore");
+        }
+        ContractLoader contractLoader = getContractLoaderForThisAgent();
+        SmartContract smartContract = contractLoader.loadContract();
+        Set<SmartContract.BidAcceptedEventResponse> logs
+                = contractLoader.getLogsForRoundId(currentRoundId.subtract(BigInteger.ONE), smartContract);
+        semaphore.release();
         return logs;
     }
 
@@ -225,10 +236,10 @@ public class BidderAgent extends Agent implements TaskedAgent {
                 message.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
                 message.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
                 Bid bid;
-                // todo: this is needed as long as we have no logs returned so that the first time,
-                //  the agent does not give a discount
+                //todo: figure out why we need to call calculateBid() in the setup
+                // so that the buyer actually accepts the offer (probably due to contractloader)
                 if (bidsForRounds.get(roundId) != null) {
-                    bid = new Bid(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell)), quantityToSell);
+                    bid = bidsForRounds.get(roundId);
                 } else {
                     bid = calculateBid();
                 }
@@ -279,6 +290,10 @@ public class BidderAgent extends Agent implements TaskedAgent {
             globalResponses++;
             if (failure.getContent() != null) {
 //                log.info(this.getAgent().getName() + " was refused/failed proposal from " + failure.getSender().getName());
+                BigDecimal isValidNumber = BigDecimalValidator.getInstance().validate(failure.getContent());
+                if (isValidNumber == null) {
+                    log.error("Buyer returned invalid number with failure: " + failure.getContent());
+                }
                 BigInteger quantityNotSold = new BigDecimal(failure.getContent()).toBigInteger();
                 quantityToSell = quantityToSell.add(quantityNotSold);
             }
