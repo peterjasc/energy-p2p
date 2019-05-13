@@ -89,7 +89,6 @@ public class BidderAgent extends Agent implements TaskedAgent {
             log.error("Terminating: " + this.getAID().getName());
             doDelete();
         }
-        doInteractionBehaviour();
         Timer t = new Timer();
         AgentTask mTask = new AgentTask(this);
         t.scheduleAtFixedRate(mTask, 0, 21000);
@@ -125,6 +124,8 @@ public class BidderAgent extends Agent implements TaskedAgent {
                 if (discountPrice
                         .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell))) >= 0) {
                     price = discountPrice;
+                } else if (bidsForRounds.get(roundId.subtract(BigInteger.ONE)) != null) {
+                    price = getDiscountPrice(bidsForRounds.get(roundId.subtract(BigInteger.ONE)));
                 } else {
                     price = priceToQuantityRatio.multiply(new BigDecimal(quantityToSell));
                 }
@@ -132,6 +133,8 @@ public class BidderAgent extends Agent implements TaskedAgent {
                 if (bestBidFromLastRound.getPrice()
                         .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell))) >= 0) {
                     price = bestBidFromLastRound.getPrice();
+                } else if (bidsForRounds.get(roundId.subtract(BigInteger.ONE)) != null) {
+                    price = bidsForRounds.get(roundId.subtract(BigInteger.ONE)).getPrice();
                 } else {
                     price = priceToQuantityRatio.multiply(new BigDecimal(quantityToSell));
                 }
@@ -141,6 +144,8 @@ public class BidderAgent extends Agent implements TaskedAgent {
             if (discountPrice
                     .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell))) >= 0) {
                 price = discountPrice;
+            } else if (bidsForRounds.get(roundId.subtract(BigInteger.ONE)) != null) {
+                price = getDiscountPrice(bidsForRounds.get(roundId.subtract(BigInteger.ONE)));
             } else {
                 price = priceToQuantityRatio.multiply(new BigDecimal(quantityToSell));
             }
@@ -173,8 +178,8 @@ public class BidderAgent extends Agent implements TaskedAgent {
         return new ContractLoader("password", walletFilePath);
     }
 
-    private BigDecimal getDiscountPrice(Bid bestBidFromPenultimateRound) {
-        return bestBidFromPenultimateRound.getPrice()
+    private BigDecimal getDiscountPrice(Bid bid) {
+        return bid.getPrice()
                 .multiply(new BigDecimal(discountFactorB)).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
     }
 
@@ -246,6 +251,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
                     bid = calculateBid();
                     bidsForRounds.put(roundId, bid);
                 }
+
                 log.info(getAID().getName() + " has issued a new offer" + bid);
 
                 message.setContent(getBiddersAddressFromWalletFilePath(walletFilePath)
