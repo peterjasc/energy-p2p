@@ -72,6 +72,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
                 priceToQuantityRatio = new BigDecimal(ratio);
 
                 Bid bid = calculateBid();
+                bid.setPrice(bid.getPrice().multiply(BigDecimal.valueOf(4)));
                 bidsForRounds.put(roundId, bid);
 
                 ServiceDescription serviceDescription = new ServiceDescription();
@@ -236,12 +237,14 @@ public class BidderAgent extends Agent implements TaskedAgent {
                 message.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
                 message.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
                 Bid bid;
-                //todo: figure out why we need to call calculateBid() in the setup
-                // so that the buyer actually accepts the offer (probably due to contractloader)
+                //todo: we need to call calculateBid() in the setup so that the buyer
+                // actually accepts the offer, otherwise instantiating ContractLoader creates deadlock
+                //: we do not want to call calculate bid more than once per round
                 if (bidsForRounds.get(roundId) != null) {
                     bid = bidsForRounds.get(roundId);
                 } else {
                     bid = calculateBid();
+                    bidsForRounds.put(roundId, bid);
                 }
                 log.info(getAID().getName() + " has issued a new offer" + bid);
 
@@ -255,30 +258,27 @@ public class BidderAgent extends Agent implements TaskedAgent {
         }
 
         protected void handlePropose(ACLMessage propose, Vector acceptances) {
+            BigDecimal proposedPrice = getPriceFromContent(propose.getContent());
+            BigInteger proposedQuantity = getQuantityFromContent(propose.getContent());
 
-            if (propose.getPerformative() == ACLMessage.PROPOSE) {
-                BigDecimal proposedPrice = getPriceFromContent(propose.getContent());
-                BigInteger proposedQuantity = getQuantityFromContent(propose.getContent());
-
-                ACLMessage reply = propose.createReply();
+            ACLMessage reply = propose.createReply();
 
 
-                if (quantityToSell.compareTo(proposedQuantity) >= 0
-                        && proposedPrice.compareTo(priceToQuantityRatio
-                        .multiply(new BigDecimal(proposedQuantity)).setScale(0, BigDecimal.ROUND_HALF_UP)) >= 0) {
-                    quantityToSell = quantityToSell.subtract(proposedQuantity);
-                    reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-                    reply.setContent(getBiddersAddressFromWalletFilePath(walletFilePath)
-                            + "|" + proposedPrice + "|" + proposedQuantity);
-                } else {
-                    reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
+            if (quantityToSell.compareTo(proposedQuantity) >= 0
+                    && proposedPrice.compareTo(priceToQuantityRatio
+                    .multiply(new BigDecimal(proposedQuantity)).setScale(0, BigDecimal.ROUND_HALF_UP)) >= 0) {
+                quantityToSell = quantityToSell.subtract(proposedQuantity);
+                reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+                reply.setContent(getBiddersAddressFromWalletFilePath(walletFilePath)
+                        + "|" + proposedPrice + "|" + proposedQuantity);
+            } else {
+                reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
 //                    log.info(getAID().getName() + " rejected proposal, because it was too low ("
 //                            + proposedPrice + "<" + priceToQuantityRatio.multiply(new BigDecimal(proposedQuantity)) +
 //                             ") OR not enough to sell (" + quantityToSell + "<" + proposedQuantity + ")");
-                }
-
-                acceptances.addElement(reply);
             }
+
+            acceptances.addElement(reply);
 
         }
 
@@ -293,9 +293,10 @@ public class BidderAgent extends Agent implements TaskedAgent {
                 BigDecimal isValidNumber = BigDecimalValidator.getInstance().validate(failure.getContent());
                 if (isValidNumber == null) {
                     log.error("Buyer returned invalid number with failure: " + failure.getContent());
+                } else {
+                    BigInteger quantityNotSold = new BigDecimal(failure.getContent()).toBigInteger();
+                    quantityToSell = quantityToSell.add(quantityNotSold);
                 }
-                BigInteger quantityNotSold = new BigDecimal(failure.getContent()).toBigInteger();
-                quantityToSell = quantityToSell.add(quantityNotSold);
             }
         }
 

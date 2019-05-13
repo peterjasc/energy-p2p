@@ -165,9 +165,9 @@ public class BuyerAgent extends Agent implements TaskedAgent {
                     if (buyersHighestPriceForOfferQuantity.compareTo(receivedOfferPrice) >= 0) {
                         response.setPerformative(ACLMessage.PROPOSE);
                         response.setContent(receivedOfferPrice + "|" + receivedOfferQuantity);
-
                     } else {
-                        log.info(getAID().getName() + " refused bid. Their highest price was " + buyersHighestPriceForOfferQuantity
+                        log.info(getAID().getName() + " refused bid from " +  cfp.getSender().getName()
+                                + ". Their highest price was " + buyersHighestPriceForOfferQuantity
                                 + ", but were offered: " + receivedOfferPrice);
                         response.setPerformative(ACLMessage.REFUSE);
                     }
