@@ -72,8 +72,8 @@ public class BidderAgent extends Agent implements TaskedAgent {
                 priceToQuantityRatio = new BigDecimal(ratio);
 
                 Bid bid = calculateBid();
-                bid.setPrice(bid.getPrice().multiply(BigDecimal.valueOf(4)));
                 bidsForRounds.put(roundId, bid);
+                log.info(getAID().getName() + " will issue a new offer" + bid);
 
                 ServiceDescription serviceDescription = new ServiceDescription();
                 serviceDescription.setType("Bidder");
@@ -97,6 +97,7 @@ public class BidderAgent extends Agent implements TaskedAgent {
     private Bid calculateBid() {
         String biddersAddress = getBiddersAddressFromWalletFilePath(walletFilePath);
         BigDecimal price;
+        BigInteger quantity;
 
         Set<SmartContract.BidAcceptedEventResponse> logsForPenultimateRoundId
                 = getLogsForPreviousRoundId(roundId);
@@ -121,37 +122,51 @@ public class BidderAgent extends Agent implements TaskedAgent {
 
             if (soldCapacityDividedByAvailableCapacity.compareTo(new BigDecimal("0.25")) <= 0) {
                 BigDecimal discountPrice = getDiscountPrice(bestBidFromLastRound);
-                if (discountPrice
-                        .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell))) >= 0) {
+                quantity = bestBidFromLastRound.getQuantity();
+                if (quantity.compareTo(quantityToSell) > 0) {
+                    price = BigDecimal.ZERO;
+                } else if (quantity.compareTo(BigInteger.ZERO) != 0 && discountPrice
+                        .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantity))) >= 0) {
                     price = discountPrice;
+
                 } else if (bidsForRounds.get(roundId.subtract(BigInteger.ONE)) != null) {
                     price = getDiscountPrice(bidsForRounds.get(roundId.subtract(BigInteger.ONE)));
+                    quantity = bidsForRounds.get(roundId.subtract(BigInteger.ONE)).getQuantity();
                 } else {
-                    price = priceToQuantityRatio.multiply(new BigDecimal(quantityToSell));
+                    price = priceToQuantityRatio.multiply(new BigDecimal(quantity));
                 }
             } else {
                 if (bestBidFromLastRound.getPrice()
                         .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell))) >= 0) {
                     price = bestBidFromLastRound.getPrice();
+                    quantity = bestBidFromLastRound.getQuantity();
                 } else if (bidsForRounds.get(roundId.subtract(BigInteger.ONE)) != null) {
                     price = bidsForRounds.get(roundId.subtract(BigInteger.ONE)).getPrice();
+                    quantity = bidsForRounds.get(roundId.subtract(BigInteger.ONE)).getQuantity();
                 } else {
                     price = priceToQuantityRatio.multiply(new BigDecimal(quantityToSell));
+                    quantity = quantityToSell;
                 }
             }
         } else {
             BigDecimal discountPrice = getDiscountPrice(bestBidFromLastRound);
-            if (discountPrice
-                    .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantityToSell))) >= 0) {
+            quantity = bestBidFromLastRound.getQuantity();
+            if (quantity.compareTo(quantityToSell) > 0) {
+                price = BigDecimal.ZERO;
+            } else if (quantity.compareTo(BigInteger.ZERO) != 0 && discountPrice
+                    .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantity))) >= 0) {
                 price = discountPrice;
+
             } else if (bidsForRounds.get(roundId.subtract(BigInteger.ONE)) != null) {
                 price = getDiscountPrice(bidsForRounds.get(roundId.subtract(BigInteger.ONE)));
+                quantity = bidsForRounds.get(roundId.subtract(BigInteger.ONE)).getQuantity();
             } else {
                 price = priceToQuantityRatio.multiply(new BigDecimal(quantityToSell));
+                quantity = quantityToSell;
             }
         }
 
-        return new Bid(price, quantityToSell);
+        return new Bid(price, quantity);
     }
 
     public void doInteractionBehaviour() {
@@ -250,9 +265,9 @@ public class BidderAgent extends Agent implements TaskedAgent {
                 } else {
                     bid = calculateBid();
                     bidsForRounds.put(roundId, bid);
+                    log.info(getAID().getName() + " has issued a new offer" + bid);
                 }
 
-                log.info(getAID().getName() + " has issued a new offer" + bid);
 
                 message.setContent(getBiddersAddressFromWalletFilePath(walletFilePath)
                         + "|" + bid.getPrice() + "|" + bid.getQuantity());
@@ -298,7 +313,6 @@ public class BidderAgent extends Agent implements TaskedAgent {
 //                log.info(this.getAgent().getName() + " was refused/failed proposal from " + failure.getSender().getName());
                 BigDecimal isValidNumber = BigDecimalValidator.getInstance().validate(failure.getContent());
                 if (isValidNumber == null) {
-                    log.error("Buyer returned invalid number with failure: " + failure.getContent());
                 } else {
                     BigInteger quantityNotSold = new BigDecimal(failure.getContent()).toBigInteger();
                     quantityToSell = quantityToSell.add(quantityNotSold);
