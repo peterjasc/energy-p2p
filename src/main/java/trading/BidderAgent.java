@@ -124,11 +124,11 @@ public class BidderAgent extends Agent implements TaskedAgent {
                 BigDecimal discountPrice = getDiscountPrice(bestBidFromLastRound);
                 quantity = bestBidFromLastRound.getQuantity();
                 if (quantity.compareTo(quantityToSell) > 0) {
-                    price = BigDecimal.ZERO;
+                    quantity = quantityToSell;
+                    price = bestBidFromLastRound.getPrice();
                 } else if (quantity.compareTo(BigInteger.ZERO) != 0 && discountPrice
                         .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantity))) >= 0) {
                     price = discountPrice;
-
                 } else if (bidsForRounds.get(roundId.subtract(BigInteger.ONE)) != null) {
                     price = getDiscountPrice(bidsForRounds.get(roundId.subtract(BigInteger.ONE)));
                     quantity = bidsForRounds.get(roundId.subtract(BigInteger.ONE)).getQuantity();
@@ -152,11 +152,11 @@ public class BidderAgent extends Agent implements TaskedAgent {
             BigDecimal discountPrice = getDiscountPrice(bestBidFromLastRound);
             quantity = bestBidFromLastRound.getQuantity();
             if (quantity.compareTo(quantityToSell) > 0) {
-                price = BigDecimal.ZERO;
+                quantity = quantityToSell;
+                price = bestBidFromLastRound.getPrice();
             } else if (quantity.compareTo(BigInteger.ZERO) != 0 && discountPrice
                     .compareTo(priceToQuantityRatio.multiply(new BigDecimal(quantity))) >= 0) {
                 price = discountPrice;
-
             } else if (bidsForRounds.get(roundId.subtract(BigInteger.ONE)) != null) {
                 price = getDiscountPrice(bidsForRounds.get(roundId.subtract(BigInteger.ONE)));
                 quantity = bidsForRounds.get(roundId.subtract(BigInteger.ONE)).getQuantity();
